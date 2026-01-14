@@ -11,9 +11,9 @@ export const Resume = () => {
     <motion.section
       initial='hidden'
       whileInView='visible'
-      viewport={{ once: true, amount: 0.2 }}
+      viewport={{ once: true, amount: 0, margin: '-120px 0px 0px 0px' }}
       variants={staggerContainer(0.1)}
-      className='mt-12 scroll-mt-10'
+      className='mt-12 scroll-mt-10 relative z-20'
       id='resume'
     >
       <SectionHeader
