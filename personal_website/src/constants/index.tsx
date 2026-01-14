@@ -71,7 +71,7 @@ const projectsData: ProjectType[] = [
   },
   {
     imgSrc: '/images/Screenshot 2026-01-14 at 2.03.50 PM.png',
-    title: 'Intership Scrapper',
+    title: 'Internship Scraper',
     tags: ['Web Scraping', 'Job-Hunting'],
     projectLink: 'https://github.com/alexyan06/Internship-Scrapper.git',
     description:
