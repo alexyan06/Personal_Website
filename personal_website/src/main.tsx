@@ -5,6 +5,8 @@ import App from '@/App';
 import { Sidebar } from './components/Sidebar';
 import { FloatingMenu } from './components/FloatingMenu';
 import { Profile } from './components/Profile';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -13,6 +15,8 @@ createRoot(document.getElementById('root')!).render(
       <FloatingMenu />
       <Profile />
       <App />
+      <Analytics />
+      <SpeedInsights />
     </div>
   </StrictMode>,
 );

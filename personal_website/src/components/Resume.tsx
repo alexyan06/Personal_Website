@@ -88,8 +88,8 @@ export const Resume = () => {
         <motion.div
           initial='hidden'
           whileInView='visible'
-          viewport={{ once: true, amount: 0.2 }}
-          variants={staggerContainer(0.1)}
+          viewport={{ once: true, amount: 0.1 }}
+          variants={staggerContainer(0.02)}
           className='grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-5'
         >
           {tools.map((tool, i) => (
