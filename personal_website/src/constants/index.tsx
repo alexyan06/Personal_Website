@@ -21,11 +21,7 @@ import {
 
 const navLinks: LinksType[] = [
   { label: 'Home', link: '#hero', icon: Home },
-  {
-    label: 'Projects',
-    link: '#projects',
-    icon: Briefcase,
-  },
+  { label: 'Projects', link: '#projects', icon: Briefcase },
   { label: 'About', link: '#about', icon: User },
   { label: 'Resume', link: '#resume', icon: FileText },
   { label: 'Contact', link: '#contact', icon: Mail },
