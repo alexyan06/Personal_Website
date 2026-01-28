@@ -102,7 +102,7 @@ const experience: ExperienceType[] = [
     year: 'Sep 2025 – Present',
     title: 'Full Stack Developer',
     institute: 'Purdue Mathematics Department',
-    desc: 'Developing an automated TA Assignment Optimization System using React and Flask. Streamlined scheduling for up to 200 TAs, reducing faculty setup time by 25% and improving query speeds by 12% through index tuning.',
+    desc: 'Developing an automated TA Assignment Optimization System using React and Flask. Streamlined scheduling for up to 200 TAs.',
     imgSrc: '/images/Screenshot 2026-01-14 at 1.07.20 PM.png',
   },
   {
