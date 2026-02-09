@@ -42,9 +42,18 @@ const socialLinks: LinksType[] = [
 
 const projectsData: ProjectType[] = [
   {
+    imgSrc: '/images/Screenshot 2026-02-09 at 5.58.24 PM.png',
+    title: 'Iris',
+    tags: ['Chrome Extension', 'Accessibility'],
+    projectLink:
+      'https://www.linkedin.com/feed/update/urn:li:activity:7426712536009383937/?originTrackingId=ZTQqS9KPkl4YvilWi%2BfTPw%3D%3D',
+    description:
+      'Iris is a voice-first Chrome extension that turns natural speech into actions across Gmail, Calendar, and Docs—planning and executing tasks via an AWS serverless backend and responding with concise, human-style summaries.',
+  },
+  {
     imgSrc: '/images/Screenshot 2026-01-09 at 2.07.47 PM.png',
     title: 'Access Prep',
-    tags: ['AI/ML', 'FinTech'],
+    tags: ['AI', 'FinTech'],
     projectLink: 'https://github.com/ryanvaby/Access-Prep',
     description:
       'A bilingual, AI-powered platform that empowers non-traditional bank applicants to navigate the financial onboarding process through intelligent document validation and conversational guidance. Placed 3rd at Capital One Tech Summit Hackathon. ',
