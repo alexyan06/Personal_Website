@@ -9,8 +9,8 @@ const fadeUp = (delay: number) => ({
 
 export const Hero = () => {
   return (
-    <section className="pt-24 pb-6 flex items-center">
-      <div className="flex items-center gap-12 md:gap-16 w-full">
+    <section className="pt-16 md:pt-24 pb-6 flex items-center">
+      <div className="flex flex-col items-center gap-6 md:flex-row md:items-center md:gap-16 w-full">
         {/* Photo */}
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
@@ -21,16 +21,16 @@ export const Hero = () => {
           <img
             src="/images/IMG_1894.jpg"
             alt="Alex Yan"
-            className="w-36 h-36 md:w-44 md:h-44 rounded-full object-cover ring-1 ring-border"
+            className="w-32 h-32 md:w-44 md:h-44 rounded-full object-cover ring-1 ring-border"
           />
         </motion.div>
 
         {/* Text */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 items-center text-center md:items-start md:text-left">
           <motion.h1
             {...fadeUp(0.1)}
             style={{ fontFamily: "'Playfair Display', serif" }}
-            className="text-5xl md:text-6xl font-normal leading-tight"
+            className="text-4xl sm:text-5xl md:text-6xl font-normal leading-tight"
           >
             Alex Yan
           </motion.h1>

@@ -31,7 +31,7 @@ export const ExperienceProjects = () => {
   return (
     <section className="pt-2 pb-12">
       <Currently />
-      <div className="grid grid-cols-2 gap-16 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 w-full">
 
         {/* Experience */}
         <div>
