@@ -23,12 +23,12 @@ const App = () => {
       <BackgroundOrbs dark={dark} />
       <ThemeToggle dark={dark} onToggle={toggleTheme} />
 
-      <main className="relative z-10 max-w-4xl mx-auto px-10 md:px-16">
+      <main className="relative z-10 max-w-4xl mx-auto px-6 sm:px-10 md:px-16">
         <Hero />
         <ExperienceProjects />
       </main>
 
-      <footer className="relative z-10 max-w-4xl mx-auto px-10 md:px-16 py-5 border-t border-border">
+      <footer className="relative z-10 max-w-4xl mx-auto px-6 sm:px-10 md:px-16 py-5 border-t border-border">
         <p className="text-[11px] text-muted-foreground">Alex Yan © 2026</p>
       </footer>
     </div>
