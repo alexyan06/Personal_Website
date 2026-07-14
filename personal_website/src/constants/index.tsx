@@ -3,6 +3,14 @@ import type { ExperienceType, ProjectType } from '@/types';
 const projectsData: ProjectType[] = [
   {
     imgSrc: '',
+    title: 'Perch',
+    tags: ['Node.js', 'TypeScript', 'Electron', 'GenAI'],
+    projectLink: 'https://github.com/alexyan06/Pyro_Tech',
+    description:
+      'A desktop app that watches your active work session, classifies what you\'re actually doing against a task you declared at the start, and nudges you back on track through an AI generated mascot companion',
+  },
+  {
+    imgSrc: '',
     title: 'PyroTech',
     tags: ['Next.js', 'TypeScript', 'Gemini', 'WebSocket'],
     projectLink: 'https://github.com/alexyan06/Pyro_Tech',
@@ -45,10 +53,17 @@ const projectsData: ProjectType[] = [
 
 const experience: ExperienceType[] = [
   {
+    year: 'Sept. 2026 – Dec. 2026',
+    title: 'Software Engineering Intern',
+    institute: 'Shopify',
+    desc: 'Incoming Fall 2026 Intern',
+    imgSrc: '',
+  },
+  {
     year: 'Jun. 2026 – Aug. 2026',
     title: 'Software Engineering Intern',
     institute: 'PNC Bank',
-    desc: 'Incoming intern on the Auto Lending Technology team.',
+    desc: 'Working on the Auto Lending Technology team.',
     imgSrc: '',
   },
   {
