@@ -77,19 +77,23 @@ export const ExperienceProjects = () => {
             {projectItems.map((proj, i) => (
               <motion.div key={i} variants={item} className="group">
                 <div className="flex items-center gap-1.5">
-                  <a
-                    href={proj.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium hover:text-accent transition-colors duration-200
-                      flex items-center gap-1"
-                  >
-                    {proj.name}
-                    <ArrowUpRight
-                      size={12}
-                      className="opacity-0 group-hover:opacity-60 transition-opacity duration-200 -translate-y-px"
-                    />
-                  </a>
+                  {proj.link ? (
+                    <a
+                      href={proj.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium hover:text-accent transition-colors duration-200
+                        flex items-center gap-1"
+                    >
+                      {proj.name}
+                      <ArrowUpRight
+                        size={12}
+                        className="opacity-0 group-hover:opacity-60 transition-opacity duration-200 -translate-y-px"
+                      />
+                    </a>
+                  ) : (
+                    <span className="text-sm font-medium">{proj.name}</span>
+                  )}
                 </div>
                 <div className="flex gap-1.5 mt-1 flex-wrap">
                   {proj.tags.map((tag, j) => (

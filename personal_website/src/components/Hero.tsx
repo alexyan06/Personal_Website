@@ -68,7 +68,7 @@ export const Hero = () => {
               GitHub
             </a>
             <a
-              href="/images/Alex_Yan_Resume copy.pdf"
+              href="/images/Alex_Yan_Resume.pdf"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-sm text-muted-foreground
