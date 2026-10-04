@@ -11,10 +11,27 @@ const projectsData: ProjectType[] = [
   },
   {
     imgSrc: '',
-    title: 'K/V Store',
+    title: 'Raft',
+    tags: ['Go', 'RPC', 'Distributed Systems'],
+    projectLink: 'https://github.com/alexyan06/raft',
+    description:
+      'Raft consensus in Go for MIT’s distributed systems course (6.5840): leader election, log replication, and crash-durable state that keep replicas consistent through partitions, dropped messages, and restarts.',
+  },
+  {
+    imgSrc: '',
+    title: 'K/V Server',
     tags: ['Go', 'RPC', 'Concurrency'],
-    projectLink: '',
-    description: 'Built a linearizable key/value server and distributed lock in Go for MIT’s distributed systems course (6.5840), using version-conditioned puts to guarantee at-most-once writes.',
+    projectLink: 'https://github.com/alexyan06/mit6824-lab2-kvsrv1',
+    description:
+      'Linearizable key/value server and distributed lock in Go (MIT 6.5840), using version-conditioned puts to guarantee at-most-once writes over an unreliable network.',
+  },
+  {
+    imgSrc: '',
+    title: 'MapReduce',
+    tags: ['Go', 'RPC', 'Distributed Systems'],
+    projectLink: 'https://github.com/alexyan06/mit6824-lab1-mapreduce',
+    description:
+      'Distributed MapReduce in Go (MIT 6.5840) with a coordinator and workers over RPC, timeout-based task reassignment, and atomic output writes.',
   },
   {
     imgSrc: '',
@@ -63,7 +80,7 @@ const experience: ExperienceType[] = [
     year: 'Sept. 2026 – Present',
     title: 'Software Engineer Intern',
     institute: 'Shopify',
-    desc: 'Building buyer identity and session services on the Shop Recognition & Continuity team.',
+    desc: 'Building bank-account ownership verification services in Ruby on Rails and GraphQL on the Payments Account Management team.',
     imgSrc: '',
   },
   {
