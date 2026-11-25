@@ -25,3 +25,15 @@ dist-ssr
 
 # Claude Code personal settings
 .claude/settings.local.json
+
+# Secrets (GEMINI_API_KEY for the art pipeline)
+.env
+
+# Art pipeline: raw model outputs (approved ones get copied to art/approved/)
+art/raw/
+
+# Headless QA runs (screenshots and reports)
+qa/out/
+
+# Music that stays on this machine: never committed, so never on the live site (see music/README.md)
+music/private/

@@ -1,0 +1,609 @@
+/*
+ * The list view (#/list): the whole world as one plain page.
+ *
+ * Units: every length is counted in --dot, one dot of the body face (VT323: 25 dots per em, a letter
+ * is 10 dots wide, a line 30 dots tall), which is always a whole number of device pixels. Press
+ * Start 2P is set in the same unit (--px is pointed at --dot below), so headings and body keep their
+ * proportions at every zoom level and pixel ratio, and the page reflows like one that is zoomed.
+ *
+ * The layout answers to the page's own width counted in the same dots: .list is a query container
+ * whose font size is 25 dots (.text-body), so 1em in an @container rule is 25 dots, 2.5 letters.
+ *
+ * Boxes, tags, bullets and the marks in the text are the shared pieces in src/index.css (.pixel-box,
+ * .pixel-tags, .pixel-bullets, .pixel-glyph, .pixel-new-tab), the same ones the dialog uses.
+ * Colors are tokens from the NES palette. No gradients, blur or rounded corners. The one picture,
+ * the way back to the world, is the world's own art: its sea and its island.
+ */
+
+.list {
+  --px: var(--dot);
+  /* The edge of a .pixel-box: two font pixels of the 16-dot type. */
+  --edge: calc(4 * var(--dot));
+
+  container: list / inline-size;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-nes-black);
+  color: var(--color-nes-white);
+  overflow-wrap: break-word;
+}
+
+.list ::selection {
+  background-color: var(--color-nes-sky);
+  color: var(--color-nes-black);
+}
+
+/* One column, at most 72 letters wide. */
+.list__frame {
+  box-sizing: border-box;
+  max-width: calc(760 * var(--dot));
+  margin-inline: auto;
+  padding: calc(32 * var(--dot)) calc(20 * var(--dot)) calc(72 * var(--dot));
+}
+
+/* ---- type --------------------------------------------------------------------------------- */
+
+/* Press Start 2P, 8 font pixels per em: 4, 3 and 2 dots per font pixel. The letters fill the top
+ * seven of their eight pixels. The small size sits on a 24-dot line, so a label that has to wrap
+ * keeps a gap between its lines; the letters then start 4 dots down. */
+.list__name,
+.list__heading,
+.list__title,
+.list__contact a,
+.list__menu button,
+.list__world-label,
+.list__back {
+  font-family: var(--font-pixel);
+  font-size: calc(16 * var(--dot));
+  line-height: calc(24 * var(--dot));
+  text-transform: uppercase;
+}
+
+.list__name {
+  font-size: calc(32 * var(--dot));
+  line-height: calc(32 * var(--dot));
+}
+
+.list__name:focus {
+  outline: none; /* focused by script when the view opens */
+}
+
+.list__heading {
+  font-size: calc(24 * var(--dot));
+  line-height: calc(24 * var(--dot));
+  color: var(--color-nes-gold);
+}
+
+.list__title {
+  text-wrap: balance;
+}
+
+.list p {
+  text-wrap: pretty;
+}
+
+/* ---- who: name, role, contact ------------------------------------------------------------- */
+
+.list__side > .list__headline {
+  margin-top: calc(12 * var(--dot));
+  color: var(--color-nes-gold);
+  text-wrap: balance;
+}
+
+.list__contact {
+  margin-top: calc(24 * var(--dot));
+}
+
+/* Four across, two by two or a single column, whichever fits. */
+.list__contact ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(152 * var(--dot))), 1fr));
+  gap: calc(12 * var(--dot)); /* room for a focus ring between two boxes */
+}
+
+/* The boxes: each is a .pixel-box. */
+.list__contact a,
+.list__back,
+.list__world {
+  display: block;
+  color: var(--color-nes-white);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 48 dots tall, the letters (14 dots of ink) in the middle. */
+.list__contact a {
+  padding: calc(13 * var(--dot)) calc(8 * var(--dot)) calc(11 * var(--dot));
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* The address written out, for paper (see the print rules at the end). */
+.list__address {
+  display: none;
+}
+
+/* ---- where: the section menu (wide screens only) ------------------------------------------ */
+
+.list__menu {
+  display: none;
+}
+
+/* Each row keeps a place for the menu arrow. It marks the section being read. */
+.list__menu button {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(8 * var(--dot));
+  width: 100%;
+  padding: calc(3 * var(--dot)) 0 calc(1 * var(--dot));
+  color: var(--color-nes-silver);
+  text-align: start;
+  cursor: pointer;
+}
+
+.list__menu .pixel-arrow {
+  visibility: hidden;
+}
+
+.list__menu button[aria-current] {
+  color: var(--color-nes-white);
+}
+
+.list__menu button[aria-current] .pixel-arrow {
+  visibility: visible;
+}
+
+/* ---- the way back: a window onto the island ----------------------------------------------- */
+
+.list__world {
+  margin-top: calc(32 * var(--dot));
+  padding: var(--edge);
+}
+
+/*
+ * A window onto the title screen at 2 dots per scene unit: the world's sea (.ground in
+ * src/index.css, with its idle motion) across the whole window, and the island, the overworld's
+ * picture at 80 x 45 units, in the middle. Both are scaled smoothly.
+ */
+.list__world-art {
+  --s: calc(2 * var(--dot));
+  position: relative;
+  display: block;
+  height: calc(104 * var(--dot));
+  border-bottom: var(--edge) solid var(--color-nes-white);
+  overflow: hidden; /* the sea's sway */
+}
+
+.list__world-sea {
+  --ground-unit: var(--s);
+}
+
+.list__world-isle {
+  position: absolute;
+  left: calc(50% - 40 * var(--s));
+  top: calc(52 * var(--dot) - 22.5 * var(--s));
+  width: calc(80 * var(--s));
+  height: calc(45 * var(--s));
+  max-width: none;
+}
+
+.list__world-label,
+.list__back {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(8 * var(--dot));
+}
+
+.list__world-label {
+  padding: calc(9 * var(--dot)) calc(12 * var(--dot)) calc(7 * var(--dot));
+}
+
+/* The menu arrow is as tall as the letters and starts where they do, on the first line. */
+.list__world .pixel-arrow,
+.list__back .pixel-arrow,
+.list__menu .pixel-arrow {
+  margin-top: calc(4 * var(--dot));
+}
+
+/* ---- sections ----------------------------------------------------------------------------- */
+
+.list__main {
+  margin-top: calc(56 * var(--dot));
+}
+
+.list__section + .list__section {
+  margin-top: calc(72 * var(--dot));
+}
+
+/* The heading and a rule one font pixel thick, level with the middle row of its letters. */
+.list__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(12 * var(--dot));
+  scroll-margin-top: calc(40 * var(--dot));
+}
+
+.list__heading::after {
+  content: '';
+  flex: 1 1 0;
+  min-width: 0;
+  height: calc(3 * var(--dot));
+  margin-top: calc(9 * var(--dot));
+  background-color: var(--color-nes-gold);
+}
+
+.list__heading:focus {
+  outline: none;
+}
+
+.list__heading:focus-visible {
+  outline: calc(2 * var(--dot)) solid var(--color-nes-gold);
+  outline-offset: calc(6 * var(--dot));
+}
+
+.list__section > * + * {
+  margin-top: calc(28 * var(--dot));
+}
+
+.list__item + .list__item {
+  margin-top: calc(44 * var(--dot));
+}
+
+.list__item > * + * {
+  margin-top: calc(12 * var(--dot));
+}
+
+.list__item > .list__sub {
+  margin-top: calc(4 * var(--dot));
+  color: var(--color-nes-gold);
+}
+
+/*
+ * Facts in a row, three letters apart, with a middle dot in each gap. The dot belongs to the fact
+ * after it and hangs to its left, so when that fact wraps to a new line its dot falls outside the
+ * paragraph and is clipped: no line ever starts or ends with a stray dot.
+ */
+.list__item > .list__meta {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: calc(30 * var(--dot));
+  margin-top: 0;
+  overflow-x: clip;
+  color: var(--color-nes-silver);
+}
+
+.list__meta > span {
+  position: relative;
+}
+
+.list__meta > span + span::before {
+  content: '\00B7';
+  content: '\00B7' / ''; /* drawn, not read out */
+  position: absolute;
+  right: 100%;
+  width: calc(30 * var(--dot));
+  text-align: center;
+}
+
+/* Short entries side by side where two fit. */
+.list__items--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(300 * var(--dot))), 1fr));
+  gap: calc(36 * var(--dot)) calc(32 * var(--dot));
+}
+
+.list__items--grid > .list__item + .list__item {
+  margin-top: 0;
+}
+
+/* The label of a tag list ("Relevant coursework") sits close to its tags. */
+.list__item > .list__tags-label {
+  color: var(--color-nes-silver);
+}
+
+.list__item > .list__tags-label + .list__tags {
+  margin-top: calc(6 * var(--dot));
+}
+
+/* Links in the text: sky and underlined, as in the dialog. */
+.list__link {
+  display: inline-flex;
+  align-items: baseline;
+  padding-block: calc(4 * var(--dot));
+  color: var(--color-nes-sky);
+}
+
+.list__link-text {
+  text-decoration: underline;
+  text-decoration-thickness: calc(2 * var(--dot));
+  text-underline-offset: calc(4 * var(--dot));
+}
+
+.list__item > .list__links {
+  margin-top: calc(6 * var(--dot));
+}
+
+.list__footer {
+  margin-top: calc(72 * var(--dot));
+}
+
+.list__back {
+  display: inline-flex;
+  padding: calc(13 * var(--dot)) calc(16 * var(--dot)) calc(11 * var(--dot));
+}
+
+/* ---- pointed at --------------------------------------------------------------------------- */
+
+/*
+ * As in the status bar and the dialog: the thing under the mouse or the keyboard turns gold, and
+ * its menu arrow blinks. The keyboard also gets a ring; a pressed box fills.
+ */
+.list a:focus-visible,
+.list button:focus-visible {
+  outline: calc(2 * var(--dot)) solid var(--color-nes-gold);
+  outline-offset: calc(2 * var(--dot));
+}
+
+.list__contact a:focus-visible,
+.list__back:focus-visible,
+.list__world:focus-visible {
+  outline-width: var(--edge);
+  outline-offset: var(--edge);
+}
+
+.list__contact a:focus-visible,
+.list__back:focus-visible,
+.list__world:focus-visible .list__world-label,
+.list__menu button:focus-visible {
+  color: var(--color-nes-gold);
+}
+
+.list__contact a:focus-visible::before,
+.list__back:focus-visible::before {
+  border-color: var(--color-nes-gold);
+}
+
+.list__link:focus-visible {
+  color: var(--color-nes-white);
+}
+
+.list__menu button:focus-visible .pixel-arrow {
+  visibility: visible;
+}
+
+@media (hover: hover) {
+  .list__contact a:hover,
+  .list__back:hover,
+  .list__world:hover .list__world-label,
+  .list__menu button:hover {
+    color: var(--color-nes-gold);
+  }
+
+  .list__contact a:hover::before,
+  .list__back:hover::before {
+    border-color: var(--color-nes-gold);
+  }
+
+  .list__link:hover {
+    color: var(--color-nes-white);
+  }
+
+  .list__menu button:hover .pixel-arrow {
+    visibility: visible;
+  }
+}
+
+.list__contact a:active,
+.list__back:active {
+  color: var(--color-nes-black);
+}
+
+.list__contact a:active::before,
+.list__back:active::before {
+  border-color: var(--color-nes-gold);
+  background-color: var(--color-nes-gold);
+}
+
+/* The arrow blinks with hard steps, like the pointer in the world. */
+@media (prefers-reduced-motion: no-preference) {
+  .list__world:focus-visible .pixel-arrow,
+  .list__back:focus-visible .pixel-arrow,
+  .list__menu button:focus-visible .pixel-arrow {
+    animation: blink 1s steps(1, end) infinite;
+  }
+
+  @media (hover: hover) {
+    .list__world:hover .pixel-arrow,
+    .list__back:hover .pixel-arrow,
+    .list__menu button:hover .pixel-arrow {
+      animation: blink 1s steps(1, end) infinite;
+    }
+  }
+}
+
+/* ---- narrow phones: under 340 dots ---------------------------------------------------------- */
+
+@container list (width < 13.6em) {
+  .list__frame {
+    padding-inline: calc(16 * var(--dot));
+  }
+
+  .list__name {
+    font-size: calc(24 * var(--dot));
+    line-height: calc(24 * var(--dot));
+  }
+
+  .list__heading {
+    font-size: calc(16 * var(--dot));
+    line-height: calc(16 * var(--dot));
+  }
+
+  .list__heading::after {
+    height: calc(2 * var(--dot));
+    margin-top: calc(6 * var(--dot));
+  }
+}
+
+/* ---- wide screens, from 1280 dots: who and where sit beside the page ------------------------- */
+
+@container list (width >= 51.2em) {
+  .list__frame {
+    display: grid;
+    grid-template-columns: calc(320 * var(--dot)) minmax(0, calc(720 * var(--dot)));
+    justify-content: center;
+    column-gap: calc(80 * var(--dot));
+    max-width: none;
+    padding-block: 0;
+    padding-inline: calc(32 * var(--dot));
+  }
+
+  /* The side padding leaves room for focus rings when the column is a scroll box (below). */
+  .list__side {
+    box-sizing: border-box;
+    margin-inline: calc(-8 * var(--dot));
+    padding: calc(64 * var(--dot)) calc(8 * var(--dot)) calc(32 * var(--dot));
+  }
+
+  .list__menu {
+    display: block;
+    margin-block: calc(28 * var(--dot)) calc(32 * var(--dot));
+  }
+
+  .list__side > .list__world {
+    margin-top: 0;
+  }
+
+  .list__main {
+    margin-top: 0;
+    padding-block: calc(68 * var(--dot)) calc(96 * var(--dot));
+  }
+
+  .list__heading {
+    scroll-margin-top: calc(68 * var(--dot));
+  }
+
+  /*
+   * In a window tall enough for it, the column stays put while the page scrolls: as tall as the
+   * window, with the island at the bottom. Should it still not fit (a zoomed page), it scrolls by
+   * itself rather than hiding the way back.
+   */
+  @media (min-height: 760px) {
+    .list__side {
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-nes-gray) var(--color-nes-black);
+    }
+
+    .list__side > * {
+      flex: none;
+    }
+
+    .list__side > .list__world {
+      margin-top: auto;
+    }
+
+    /* The island is always in reach, so a second way back at the end is not needed. */
+    .list__footer {
+      display: none;
+    }
+  }
+}
+
+/* ---- paper -------------------------------------------------------------------------------- */
+
+/* Black on white, without the menu and the way back. */
+@media print {
+  /* The page behind the list is black on screen (--page-bg); on paper it is the paper. */
+  :root:has(.list),
+  :root:has(.list) body {
+    background-color: var(--color-nes-white);
+  }
+
+  .list {
+    min-height: 0;
+    background-color: transparent;
+    color: var(--color-nes-black);
+  }
+
+  .list__frame {
+    display: block;
+    max-width: none;
+    padding: 0;
+  }
+
+  .list__side {
+    position: static;
+    display: block;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .list__main {
+    margin-top: calc(40 * var(--dot));
+    padding: 0;
+  }
+
+  .list__menu,
+  .list__world,
+  .list__footer,
+  .list .pixel-new-tab {
+    display: none;
+  }
+
+  .list__heading,
+  .list__side > .list__headline,
+  .list__item > .list__sub,
+  .list__item > .list__meta,
+  .list__item > .list__tags-label,
+  .list__tags > li,
+  .list__contact a,
+  .list__link {
+    color: var(--color-nes-black);
+  }
+
+  .list__heading::after,
+  .list .pixel-bullets > li::before {
+    background-color: var(--color-nes-black);
+  }
+
+  /* Contact: no boxes to press on paper. Each line is the name and the address, in the body face. */
+  .list__contact ul {
+    display: block;
+  }
+
+  .list__contact a {
+    display: grid;
+    grid-template-columns: calc(100 * var(--dot)) minmax(0, 1fr);
+    padding: 0;
+    font-family: var(--font-body);
+    font-size: calc(25 * var(--dot));
+    line-height: calc(30 * var(--dot));
+    text-align: start;
+    text-transform: none;
+    white-space: normal;
+  }
+
+  .list__contact a::before {
+    display: none;
+  }
+
+  .list__address {
+    display: block;
+  }
+
+  .list__item {
+    break-inside: avoid;
+  }
+
+  .list__heading {
+    break-after: avoid;
+  }
+}

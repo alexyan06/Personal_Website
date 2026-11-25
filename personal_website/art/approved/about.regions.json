@@ -1,0 +1,14 @@
+{
+  "image": "about.png",
+  "size": [320, 180],
+  "note": "Boxes are [x, y, w, h] in scene pixels. box = click area; plate = blank label plate in the art; items = individual shelf items, left to right. Display names live in src/world/scenes.ts.",
+  "regions": {
+    "me": { "box": [146, 64, 28, 48] },
+    "diploma": { "box": [54, 16, 27, 22] },
+    "corkboard": { "box": [210, 16, 40, 32] },
+    "computer": { "box": [41, 47, 19, 26] },
+    "scroll": { "box": [64, 57, 18, 16] },
+    "mailbox": { "box": [187, 130, 20, 30] },
+    "door": { "box": [137, 132, 46, 48] }
+  }
+}

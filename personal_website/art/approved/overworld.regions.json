@@ -1,0 +1,31 @@
+{
+  "image": "overworld.png",
+  "size": [320, 180],
+  "note": "Boxes are [x, y, w, h] in scene pixels. Used for click areas, label placement (under the box) and zoom crops. Display names live in src/world/scenes.ts.",
+  "regions": {
+    "about": {
+      "box": [136, 58, 41, 39]
+    },
+    "learning": {
+      "box": [84, 7, 43, 47]
+    },
+    "projects": {
+      "box": [199, 4, 49, 50]
+    },
+    "skills": {
+      "box": [72, 79, 33, 29]
+    },
+    "experience": {
+      "box": [202, 62, 86, 46],
+      "buildings": {
+        "shopify": [202, 84, 22, 24],
+        "pnc": [225, 81, 22, 27],
+        "purduestack": [247, 62, 18, 46],
+        "rooh": [266, 80, 22, 28]
+      }
+    },
+    "misc": {
+      "box": [144, 120, 33, 35]
+    }
+  }
+}

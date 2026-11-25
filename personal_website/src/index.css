@@ -1,63 +1,521 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+/* Tailwind scans only the app's own sources (not qa/ or art/). */
+@import "tailwindcss" source(none);
+@source "../index.html";
+@source "./";
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * Colors: the UI is drawn in the NES master palette (art/scripts/nes-palette.mjs).
+ * `--color-*: initial` removes Tailwind's own palette, so a utility such as `bg-nes-black`
+ * exists and `bg-slate-900` does not. The art is not held to the palette: the sea and the grass
+ * bring their own colors (art/approved/hd/backdrops.json), and so do the label plates below.
+ */
+@theme static {
+  --color-*: initial;
+  --color-nes-black: #000000;
+  --color-nes-white: #FCFCFC;
+  --color-nes-silver: #BCBCBC;
+  --color-nes-gray: #7C7C7C;
+  --color-nes-ocean: #0078F8;
+  --color-nes-sky: #3CBCFC;
+  --color-nes-ice: #A4E4FC;
+  --color-nes-blue: #0058F8;
+  --color-nes-navy: #0000BC;
+  --color-nes-teal: #004058;
+  --color-nes-grass: #00A800;
+  --color-nes-forest: #007800;
+  --color-nes-lime: #58D854;
+  --color-nes-red: #A81000;
+  --color-nes-crimson: #A80020;
+  --color-nes-flame: #F83800;
+  --color-nes-orange: #E45C10;
+  --color-nes-amber: #FCA044;
+  --color-nes-gold: #F8B800;
+  --color-nes-sand: #F8D878;
+  --color-nes-cream: #FCE0A8;
+  --color-nes-peach: #F0D0B0;
+  --color-nes-wood: #AC7C00;
+  --color-nes-bark: #503000;
+  --color-nes-rust: #881400;
+  --color-nes-pink: #F878F8;
+  --color-nes-cyan: #00FCFC;
+  --color-nes-lavender: #B8B8F8;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-accent: var(--accent);
+  /*
+   * Not from the NES palette: the blank label plates painted in the room pictures
+   * (art/approved/hd/), measured from them. A label chip that lies on a plate takes its color, so
+   * the two read as one (.label--* in src/styles/world.css). The QA harness accepts these on labels.
+   */
+  --color-plate-town: #F3C789;
+  --color-plate-workshop: #F5C686;
+  --color-plate-hall: #C5CADE;
 
-  --font-inter: 'Inter', sans-serif;
-  --font-playfair: 'Playfair Display', serif;
+  --font-*: initial;
+  /* Titles, labels and the HUD. 8 font pixels per em. */
+  --font-pixel: 'Press Start 2P', 'Press Start 2P Fallback', ui-monospace, 'Courier New', monospace;
+  /* Dialog and list-view body text. 25 dots per em. */
+  --font-body: 'VT323', 'VT323 Fallback', ui-monospace, 'Courier New', monospace;
 }
 
-:root {
-  --background: #ffffff;
-  --foreground: #111111;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --border: #e4e4e7;
-  --accent: #2563eb;
+/*
+ * What stands in while the two faces load. Text is hidden then (html.fonts-pending below), but it
+ * is laid out: these are a local monospace face scaled to the width of the real letters, so lines
+ * break where they will break and no box changes size when the real face arrives. A monospace
+ * letter is 0.6em wide in nearly every face; in Press Start 2P it is 1em, in VT323 0.4em.
+ */
+@font-face {
+  font-family: 'Press Start 2P Fallback';
+  src:
+    local('Courier New'), local('Menlo'), local('Liberation Mono'), local('DejaVu Sans Mono'),
+    local('Roboto Mono'), local('Droid Sans Mono');
+  size-adjust: 166.667%;
 }
 
-.dark {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --border: #334155;
-  --accent: #60a5fa;
+@font-face {
+  font-family: 'VT323 Fallback';
+  src:
+    local('Courier New'), local('Menlo'), local('Liberation Mono'), local('DejaVu Sans Mono'),
+    local('Roboto Mono'), local('Droid Sans Mono');
+  size-adjust: 66.667%;
 }
 
 @layer base {
+  :root {
+    /*
+     * One font pixel of Press Start 2P and one dot of VT323, in CSS px, always a whole number of
+     * device pixels. src/world/pixels.ts sets both from devicePixelRatio; the stage sets its own
+     * (src/components/Stage.tsx). Size pixel type from these, never in plain px:
+     *   Press Start 2P: font-size = 8 x --px   (16 x --px for the large size)
+     *   VT323:          font-size = 25 x --dot
+     */
+    --px: 1px;
+    --dot: 1px;
+    /* The most the status bar may take. Hud.tsx sets its height (this, or 24px with its small type);
+     * the stage gets the rest of the viewport. */
+    --hud-h: 32px;
+    /* Color of the page behind everything; follows the scene's ground (sea or grass, see below). */
+    --page-bg: var(--color-nes-black);
+
+    /*
+     * The sea's idle motion (.ground--moving below). All of its timing is here:
+     *   --sea-fade-time   the first wave frame turns into the second over this long, then back
+     *   --sea-fade-steps  how many looks that takes, both frames included (4: first, two blends, second)
+     *   --sea-sway-time   the waves slide from one side to the other in this long, then back
+     *   --sea-sway-by     how far they slide each way from the middle, in scene units
+     *   --sea-sway-steps  how many jumps that slide is made in (twice --sea-sway-by: one scene unit each)
+     * Both move in hard steps, like the frames of an old game, a couple of times a second in all.
+     * For a smooth sea, put `linear` or `ease-in-out` in place of the two steps() further down.
+     */
+    --sea-fade-time: 3.5s;
+    --sea-fade-steps: 4;
+    --sea-sway-time: 5s;
+    --sea-sway-by: 3;
+    --sea-sway-steps: 6;
+  }
+
+  @media (max-height: 480px) {
+    :root {
+      --hud-h: 24px;
+    }
+  }
+
   html {
-    scroll-behavior: smooth;
+    height: 100%;
+    background-color: var(--page-bg);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
-    background-color: var(--background);
-    color: var(--foreground);
-    font-family: 'Inter', sans-serif;
-    transition: background-color 0.3s ease, color 0.3s ease;
-    cursor: none;
+    min-height: 100%;
+    background-color: var(--page-bg);
+    color: var(--color-nes-white);
+    font-family: var(--font-body);
+    font-size: calc(25 * var(--dot));
+    line-height: calc(30 * var(--dot));
+    /* Pixel type: one weight, upright, hard edges, glyphs on the grid. */
+    font-weight: 400;
+    font-style: normal;
+    font-synthesis: none;
+    font-kerning: none;
+    font-variant-ligatures: none;
+    letter-spacing: 0;
+    text-rendering: optimizeSpeed;
+    -webkit-font-smoothing: none;
+    /* Firefox on macOS does not read the line above and has no "none": this at least stops it
+     * thickening the letters, which leaves Press Start 2P with hard edges. */
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  * {
-    cursor: none;
+  b,
+  strong,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  th {
+    font-weight: 400;
+  }
+
+  em,
+  i,
+  cite,
+  dfn,
+  address {
+    font-style: normal;
+  }
+
+  :focus-visible {
+    outline: calc(2 * var(--px)) solid var(--color-nes-white);
+    outline-offset: calc(2 * var(--px));
+  }
+
+  /* While the pixel fonts load (src/world/preload.ts): boxes and art show, letters wait. */
+  html.fonts-pending * {
+    color: transparent !important;
+    text-shadow: none !important;
   }
 }
 
-@keyframes float-slow {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33%       { transform: translate(40px, -30px) scale(1.05); }
-  66%       { transform: translate(-20px, 20px) scale(0.95); }
+@layer components {
+  /*
+   * The pieces the status bar, the dialog, the list view and the rotate screen are built from.
+   * Component styles (src/styles/*.css) are not in a layer, so they override these where they differ.
+   */
+
+  /* ---- type ----------------------------------------------------------------------------- */
+
+  /* Press Start 2P at its base size: 8 font pixels per em. */
+  .text-pixel {
+    font-family: var(--font-pixel);
+    font-size: calc(8 * var(--px));
+    line-height: calc(12 * var(--px));
+  }
+
+  /* VT323 body text: 25 dots per em on a 30-dot line. */
+  .text-body {
+    font-family: var(--font-body);
+    font-size: calc(25 * var(--dot));
+    line-height: calc(30 * var(--dot));
+  }
+
+  /* ---- the frame of a text box ------------------------------------------------------------ */
+
+  /*
+   * A black rim, a white band twice as thick and the black fill, each a rectangle with its corners
+   * stepped in. An empty element with this class goes first inside a `position: relative` box, whose
+   * content then sits above it (`position: relative`). --frame-step, set on the box, is one step:
+   * the frame is three steps thick. One corner (R rim, W white, B fill):
+   *
+   *   . . . R R R R
+   *   . . R W W W W
+   *   . R R W W W W
+   *   R W W W W B B
+   *   R W W W W B B
+   *   R W W B B B B
+   */
+  .pixel-frame,
+  .pixel-frame::before,
+  .pixel-frame::after {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .pixel-frame {
+    --step: var(--frame-step, calc(2 * var(--dot)));
+    inset: 0;
+    background-color: var(--color-nes-black);
+    clip-path: polygon(
+      0 calc(3 * var(--step)),
+      var(--step) calc(3 * var(--step)),
+      var(--step) calc(2 * var(--step)),
+      calc(2 * var(--step)) calc(2 * var(--step)),
+      calc(2 * var(--step)) var(--step),
+      calc(3 * var(--step)) var(--step),
+      calc(3 * var(--step)) 0,
+      calc(100% - 3 * var(--step)) 0,
+      calc(100% - 3 * var(--step)) var(--step),
+      calc(100% - 2 * var(--step)) var(--step),
+      calc(100% - 2 * var(--step)) calc(2 * var(--step)),
+      calc(100% - var(--step)) calc(2 * var(--step)),
+      calc(100% - var(--step)) calc(3 * var(--step)),
+      100% calc(3 * var(--step)),
+      100% calc(100% - 3 * var(--step)),
+      calc(100% - var(--step)) calc(100% - 3 * var(--step)),
+      calc(100% - var(--step)) calc(100% - 2 * var(--step)),
+      calc(100% - 2 * var(--step)) calc(100% - 2 * var(--step)),
+      calc(100% - 2 * var(--step)) calc(100% - var(--step)),
+      calc(100% - 3 * var(--step)) calc(100% - var(--step)),
+      calc(100% - 3 * var(--step)) 100%,
+      calc(3 * var(--step)) 100%,
+      calc(3 * var(--step)) calc(100% - var(--step)),
+      calc(2 * var(--step)) calc(100% - var(--step)),
+      calc(2 * var(--step)) calc(100% - 2 * var(--step)),
+      var(--step) calc(100% - 2 * var(--step)),
+      var(--step) calc(100% - 3 * var(--step)),
+      0 calc(100% - 3 * var(--step))
+    );
+  }
+
+  /*
+   * A rectangle with a square of --n by --n left out of each corner: the white band and the fill of
+   * the frame, the edge of a box and the outline of a tag.
+   */
+  .pixel-frame::before,
+  .pixel-frame::after,
+  .pixel-box::before,
+  .pixel-tags > li::before {
+    content: '';
+    clip-path: polygon(
+      0 var(--n),
+      var(--n) var(--n),
+      var(--n) 0,
+      calc(100% - var(--n)) 0,
+      calc(100% - var(--n)) var(--n),
+      100% var(--n),
+      100% calc(100% - var(--n)),
+      calc(100% - var(--n)) calc(100% - var(--n)),
+      calc(100% - var(--n)) 100%,
+      var(--n) 100%,
+      var(--n) calc(100% - var(--n)),
+      0 calc(100% - var(--n))
+    );
+  }
+
+  .pixel-frame::before,
+  .pixel-frame::after {
+    --n: calc(2 * var(--step));
+  }
+
+  .pixel-frame::before {
+    inset: var(--step);
+    background-color: var(--color-nes-white);
+  }
+
+  .pixel-frame::after {
+    inset: calc(3 * var(--step));
+    background-color: var(--color-nes-black);
+  }
+
+  /* Forced colors repaint every background alike, which would leave the frame without an edge. */
+  @media (forced-colors: active) {
+    .pixel-frame {
+      clip-path: none;
+      outline: var(--step) solid CanvasText;
+      outline-offset: calc(-2 * var(--step));
+    }
+  }
+
+  /* ---- a box to press: a white edge with the corner pixels left out ----------------------- */
+
+  /*
+   * --edge is the thickness of the edge. It is drawn by ::before, behind the content, so the box
+   * itself is not clipped and keeps its focus ring.
+   */
+  .pixel-box {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .pixel-box::before {
+    --n: var(--edge, calc(2 * var(--px)));
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: var(--n) solid var(--color-nes-white);
+    pointer-events: none;
+  }
+
+  /* ---- tags: small outlined chips --------------------------------------------------------- */
+
+  .pixel-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(6 * var(--dot)) calc(8 * var(--dot));
+    list-style: none;
+  }
+
+  .pixel-tags > li {
+    position: relative;
+    padding: calc(2 * var(--dot)) calc(8 * var(--dot));
+    color: var(--color-nes-silver);
+  }
+
+  /* The outline is one pixel of the body face thick. */
+  .pixel-tags > li::before {
+    --n: calc(2 * var(--dot));
+    position: absolute;
+    inset: 0;
+    border: var(--n) solid var(--color-nes-gray);
+    pointer-events: none;
+  }
+
+  /* ---- bullets ---------------------------------------------------------------------------- */
+
+  .pixel-bullets {
+    list-style: none;
+  }
+
+  .pixel-bullets > li {
+    position: relative;
+    padding-left: calc(20 * var(--dot));
+    text-wrap: pretty;
+  }
+
+  .pixel-bullets > li + li {
+    margin-top: calc(8 * var(--dot));
+  }
+
+  /* A square bullet, three pixels of the body face each way, centered on the lowercase letters. */
+  .pixel-bullets > li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: calc(12 * var(--dot));
+    width: calc(6 * var(--dot));
+    height: calc(6 * var(--dot));
+    background-color: var(--color-nes-gold);
+  }
+
+  /* ---- marks drawn in the body face's pixels (src/components/BodyText.tsx) ----------------- */
+
+  /* A character the face lacks: one letter wide, sitting on the baseline. */
+  .pixel-glyph {
+    display: inline-block;
+    width: calc(10 * var(--dot));
+    height: calc(10 * var(--dot));
+  }
+
+  .pixel-glyph > svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
+  }
+
+  /* "Opens in a new tab", after a link's text. */
+  .pixel-new-tab {
+    flex: none;
+    width: calc(10 * var(--dot));
+    height: calc(10 * var(--dot));
+    margin-left: calc(6 * var(--dot));
+    fill: currentColor;
+  }
+
+  /* ---- the ground: one tile across a whole box (src/components/Ground.tsx) ------------------ */
+
+  /*
+   * The sea and the grass. The component sets the tile (--tile-a, and --tile-b where there is a
+   * second frame), its size in scene units (--tile-w, --tile-h) and its base color. Whoever places
+   * a ground sets --ground-unit, the length of one scene unit there, and may set --ground-x and
+   * --ground-y: where a tile's corner goes inside the box. The tiles are high-definition pictures,
+   * scaled smoothly like the scenes.
+   */
+  .ground {
+    position: absolute;
+    inset: 0;
+    background-color: var(--tile-color);
+    pointer-events: none;
+  }
+
+  .ground__tiles,
+  .ground__frame {
+    position: absolute;
+    inset: 0;
+    background-repeat: repeat;
+    background-size: calc(var(--tile-w) * var(--ground-unit)) calc(var(--tile-h) * var(--ground-unit));
+    background-position: var(--ground-x, 0px) var(--ground-y, 0px);
+  }
+
+  .ground__tiles {
+    background-image: var(--tile-a);
+  }
+
+  .ground__frame {
+    background-image: var(--tile-b);
+  }
+
+  /*
+   * A ground with two frames (the sea) moves: the second frame fades in and out over the first,
+   * and the two slide slowly from side to side together. Only opacity and transform change, so the
+   * compositor does it all and nothing is painted again while it runs; and both go in steps, so a
+   * new picture is put together only a couple of times a second, not sixty. The tiles are wider
+   * than the box by the slide at each side, so no edge ever shows. Timing: --sea-* on :root, at the
+   * top of this file. Under reduced motion the sea is its first frame, still.
+   */
+  .ground--moving {
+    --sway: calc(var(--sea-sway-by) * var(--ground-unit));
+  }
+
+  .ground--moving .ground__tiles {
+    left: calc(-1 * var(--sway));
+    right: calc(-1 * var(--sway));
+  }
+
+  .ground--moving .ground__tiles,
+  .ground--moving .ground__frame {
+    background-position: calc(var(--ground-x, 0px) + var(--sway)) var(--ground-y, 0px);
+  }
+
+  .ground--moving .ground__frame {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ground--moving .ground__tiles {
+      animation: sea-sway var(--sea-sway-time) steps(var(--sea-sway-steps), end) infinite alternate;
+    }
+
+    .ground--moving .ground__frame {
+      animation: sea-fade var(--sea-fade-time) steps(var(--sea-fade-steps), jump-none) infinite alternate;
+    }
+  }
+
+  /* ---- the menu arrow ------------------------------------------------------------------- */
+
+  /* Drawn in font pixels (see PixelArrow.tsx); em units tie it to the Press Start 2P text beside it. */
+  .pixel-arrow {
+    display: inline-block;
+    flex: none;
+    width: 0.5em;
+    height: 0.875em;
+    vertical-align: 0.125em;
+    fill: currentColor;
+  }
+
+  .pixel-arrow--outlined {
+    width: 0.75em;
+    height: 1.125em;
+    vertical-align: 0;
+  }
+
+  .pixel-arrow__edge {
+    fill: var(--color-nes-black);
+  }
 }
 
-@keyframes float-medium {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%       { transform: translate(-35px, 40px) scale(1.08); }
+/* The sea (.ground--moving): the waves slide from --sway left of the middle to --sway right of it, */
+/* and the second frame fades in. Both run back and forth (alternate). */
+@keyframes sea-sway {
+  from {
+    transform: translateX(calc(-1 * var(--sway)));
+  }
+
+  to {
+    transform: translateX(var(--sway));
+  }
+}
+
+@keyframes sea-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Blink: hard on and off. Used as `animation: blink 1s steps(1, end)`, never under reduced motion. */
+@keyframes blink {
+  50% {
+    visibility: hidden;
+  }
 }

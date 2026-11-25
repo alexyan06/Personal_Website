@@ -1,0 +1,28 @@
+{
+  "image": "title.png",
+  "size": [
+    320,
+    180
+  ],
+  "note": "Where the overworld sits on the title screen. Zoom from this rect to full screen on PRESS START.",
+  "overworldRect": [
+    120,
+    78,
+    80,
+    45
+  ],
+  "textAreas": {
+    "title": [
+      0,
+      12,
+      320,
+      44
+    ],
+    "pressStart": [
+      0,
+      140,
+      320,
+      28
+    ]
+  }
+}

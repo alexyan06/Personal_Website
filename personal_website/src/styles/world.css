@@ -1,0 +1,480 @@
+/* The engine: app shell, stage, scenes, grounds, labels, hotspots, the pointer and the title screen.
+ * Lengths over the art are in --u (one scene unit: a 320th of the stage's width), so they scale
+ * with it. The art itself is high-definition and scaled smoothly; the type and chips over it are
+ * pixel UI on whole device pixels. */
+
+/* ---- app shell ---------------------------------------------------------------------------- */
+
+.app {
+  position: relative;
+  height: 100vh;
+  height: 100dvh; /* follows mobile browser bars, so the world never scrolls */
+  overflow: hidden;
+  background-color: var(--page-bg);
+}
+
+.app__world {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/*
+ * First Tab stop on every world view: a .pixel-box (src/index.css). Off screen until it has focus.
+ * Set at 16 x --px, the status bar's size on a desktop: it is the door to the list view, and the
+ * first thing a keyboard visitor sees.
+ */
+.skip-link {
+  position: absolute;
+  left: calc(8 * var(--px));
+  top: calc(8 * var(--px));
+  z-index: 30;
+  padding: calc(8 * var(--px));
+  font-size: calc(16 * var(--px));
+  line-height: calc(24 * var(--px));
+  /* A black rim, so the white edge and the white focus ring around it hold against the art. */
+  box-shadow: 0 0 0 calc(2 * var(--px)) var(--color-nes-black);
+  color: var(--color-nes-white);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.skip-link::before {
+  background-color: var(--color-nes-black);
+}
+
+.skip-link:not(:focus) {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  box-shadow: none;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* ---- stage -------------------------------------------------------------------------------- */
+
+.stage-area {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/*
+ * The color a dive passes through. It covers the stage and the background around it, so the whole
+ * view below the status bar flashes and the background changes color behind it. Opacity is driven
+ * by src/world/transitions.ts.
+ */
+.stage-area__flash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/*
+ * 320k x 180k. Width, height, offset, --k, --u, --px, --dot and the --area-* lengths are set
+ * inline by Stage.tsx. The stage does not clip its scenes: .stage-area does. A scene's picture is
+ * exactly the stage at rest, and its ground (.scene__ground) covers the whole view below the
+ * status bar; a camera that has zoomed (a dive, a room eased toward an object) fills that view too.
+ */
+.stage {
+  position: absolute;
+  contain: layout;
+}
+
+.stage__scenes,
+.stage__dialog {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * Where the dialog mounts. The layer's content box is the room a dialog has: the top
+ * --dialog-top scene pixels always stay free (DIALOG_TOP in src/world/camera.ts), with 8 scene
+ * pixels at the sides and 6 below. The dialog sits at the bottom, as tall as its content; the camera
+ * frames the opened object in what it leaves free. Clicking the layer outside the dialog goes back
+ * (Stage.tsx).
+ */
+.stage__dialog {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: calc(var(--dialog-top) * var(--u)) calc(8 * var(--u)) calc(6 * var(--u));
+  pointer-events: none;
+}
+
+.stage__dialog[data-open] {
+  pointer-events: auto;
+}
+
+/* ---- a scene ------------------------------------------------------------------------------ */
+
+.scene {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(320 * var(--u));
+  height: calc(180 * var(--u));
+  transform-origin: 0 0; /* the camera transform is set by src/world/transitions.ts */
+}
+
+/*
+ * The ground under the picture: the sea or the grass, tiled (.ground in src/index.css). It covers
+ * the whole view below the status bar, not just the stage: its box starts at the view's corner
+ * (the stage's own offset, undone) and is as large as the view. Being part of the scene, it moves
+ * and scales with the camera like the picture on it. Tiles are counted from the scene's own corner,
+ * so the ground stays put under the picture when the window changes size. A room's ground also
+ * reaches below the view (--ground-below, set by SceneView.tsx): see groundBelow in camera.ts.
+ */
+.scene__ground {
+  --ground-unit: var(--u);
+  --ground-x: var(--area-x);
+  --ground-y: var(--area-y);
+  inset: auto;
+  left: calc(-1 * var(--area-x));
+  top: calc(-1 * var(--area-y));
+  width: var(--area-w);
+  height: calc(var(--area-h) + var(--ground-below, 0px));
+}
+
+/*
+ * The picture: 1376 x 768 of its own pixels across the 320 x 180 scene units, cut out of its
+ * background so the ground shows around it. Scaled smoothly, down or up (never pixelated). The
+ * title screen's picture is the small island; its box is set inline by SceneView.tsx.
+ */
+.scene__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Art that failed to load (SceneView.tsx): the ground shows, not the browser's placeholder. */
+.scene__img[data-broken] {
+  visibility: hidden;
+}
+
+/*
+ * Chimney smoke over a picture (Smoke.tsx). The layer is exactly the picture's box, and every
+ * puff's place and size is a share of that box, so the smoke is at the picture's scale wherever
+ * the picture is drawn (small on the title screen) and follows the camera with it. A puff is a
+ * window one frame large over the row of frames; both move by transform only. Places, sizes and
+ * the animations are written from src/world/smoke.ts, where all of it is tuned.
+ */
+.smoke {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.smoke__puff {
+  position: absolute;
+  overflow: hidden;
+}
+
+.smoke__sheet {
+  height: 100%;
+  background-image: var(--smoke-sheet);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+/*
+ * Someone standing in the scene (Character.tsx): a window one frame large, and behind it the
+ * whole row of frames, which slides in steps. Box, sheet width and resting frame are set inline;
+ * the animations are written from the sheet's JSON (src/world/character.ts).
+ */
+.character {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.character__sheet {
+  display: block;
+  height: 100%;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.scene__heading:focus {
+  outline: none; /* focus is moved here by script after a scene change, to announce the scene */
+}
+
+.scene__labels,
+.scene__hotspots {
+  position: absolute;
+  inset: 0;
+}
+
+/* Keeps the z-order of hotspots and their parts (.hotspot__core, .hotspot__name) to this layer. */
+.scene__hotspots {
+  isolation: isolate;
+}
+
+/*
+ * Labels and the pointer are drawn above the hotspots, so a focus ring never cuts through a
+ * neighbor's name. They take no mouse: the hotspots underneath do (.hotspot__name).
+ *
+ * The layer shows only while the scene's data-ui asks for the layout it holds (SceneView.tsx):
+ *   on    the labels of the scene at rest. They fade in once the camera has stopped and fade out
+ *         quickly when it starts.
+ *   zoom  the labels of a room zoomed on an opened object. The layer undoes the camera's scale
+ *         (transform set inline, from the scene's top left corner), so the type is not stretched.
+ *         They cut in when the camera arrives and cut out when it leaves.
+ *   off   nothing: the camera is moving.
+ */
+.scene__labels {
+  z-index: 1;
+  transform-origin: 0 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 80ms linear;
+}
+
+.scene[data-ui='on'] .scene__labels[data-labels='rest'] {
+  opacity: 1;
+  transition-duration: 100ms;
+}
+
+.scene__labels[data-labels='zoom'] {
+  transition: none;
+}
+
+.scene[data-ui='zoom'] .scene__labels[data-labels='zoom'] {
+  opacity: 1;
+}
+
+.scene:not([data-ui='on']) .scene__hotspots {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene__labels {
+    transition: none;
+  }
+}
+
+/* ---- labels ------------------------------------------------------------------------------- */
+
+/* Box, font size, text offset and --edge (the border's width) are set inline from
+ * src/world/labels.ts, on whole device pixels. */
+.label {
+  position: absolute;
+  box-sizing: border-box;
+  border: var(--edge, 0px) solid var(--color-nes-black);
+  font-family: var(--font-pixel);
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.label--tag {
+  background-color: var(--color-nes-black);
+  color: var(--color-nes-white);
+}
+
+.label--tip {
+  background-color: var(--color-nes-white);
+  color: var(--color-nes-black);
+}
+
+/*
+ * Chips that lie on a blank plate painted in the room's picture. Each takes its plate's own color
+ * (the --color-plate-* tokens, measured from the pictures) and its edge: the workshop's floor
+ * plates have none, the town's sidewalk plates and the trophy hall's wall and floor plates have
+ * a black line all round, one scene unit wide like the chip's border. The chip covers the plate
+ * (and grows past it for a long name), so the two read as one sign.
+ */
+.label--sand {
+  background-color: var(--color-plate-workshop);
+  color: var(--color-nes-bark);
+}
+
+.label--sign {
+  background-color: var(--color-plate-town);
+  color: var(--color-nes-bark);
+}
+
+.label--steel {
+  background-color: var(--color-plate-hall);
+  color: var(--color-nes-black);
+}
+
+/* ---- hotspots and the pointer ------------------------------------------------------------- */
+
+.hotspot {
+  position: absolute;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * The region itself inside a hotspot that was grown to the minimum target size. Grown boxes of
+ * small things side by side (the items on a Skills shelf) overlap, and the later one would take
+ * half of its neighbor; this lies above every hotspot box, so the art always belongs to its own button.
+ */
+.hotspot__core {
+  position: absolute;
+  z-index: 1;
+}
+
+/*
+ * The part of a hotspot that lies over its name and over the ▶ beside it. Names are drawn in the
+ * label layer and often sit outside the object's box, or inside a neighbor's; this lies above
+ * every hotspot box and core, so a name always belongs to its own object.
+ */
+.hotspot__name {
+  position: absolute;
+  z-index: 2;
+}
+
+/* White ring with a black ring inside it: it shows on any art, and stays inside the box so the
+ * stage edge never clips it. */
+.hotspot:focus-visible {
+  outline: var(--u) solid var(--color-nes-white);
+  outline-offset: calc(-1 * var(--u));
+  box-shadow: inset 0 0 0 calc(2 * var(--u)) var(--color-nes-black);
+}
+
+/* The one blinking triangle, left of the active hotspot's label. Font size is set inline. */
+.pointer {
+  position: absolute;
+  display: block;
+  line-height: 0;
+  color: var(--color-nes-white);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pointer {
+    animation: blink 1s steps(1, end) infinite;
+  }
+}
+
+/* ---- ?debug=hotspots ---------------------------------------------------------------------- */
+
+.app--debug .hotspot {
+  outline: 2px solid var(--color-nes-pink);
+  outline-offset: -2px;
+}
+
+.app--debug .label {
+  outline: 2px solid var(--color-nes-cyan);
+  outline-offset: 0;
+}
+
+/* ---- title screen ------------------------------------------------------------------------- */
+
+/* A click or tap anywhere below the status bar starts (TitleScreen.tsx), so all of it is a pointer. */
+.stage-area:has(.title) {
+  cursor: pointer;
+}
+
+.title {
+  position: absolute;
+  inset: 0;
+}
+
+.title__ui {
+  transition: opacity 100ms linear;
+}
+
+.scene[data-ui='off'] .title__ui {
+  opacity: 0;
+  transition-duration: 80ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title__ui {
+    transition: none;
+  }
+}
+
+/* ALEX YAN: 3 scene pixels per font pixel, with a hard shadow one font pixel down and right. */
+.title__name {
+  position: absolute;
+  margin: 0;
+  font-family: var(--font-pixel);
+  font-size: calc(24 * var(--u));
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-nes-white);
+  text-shadow: calc(3 * var(--u)) calc(3 * var(--u)) 0 var(--color-nes-black);
+}
+
+.title__name:focus {
+  outline: none;
+}
+
+.title__start {
+  position: absolute;
+  padding: calc(4 * var(--u));
+  border: 0;
+  background: transparent;
+  font-family: var(--font-pixel);
+  font-size: calc(8 * var(--u));
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-nes-white);
+  cursor: pointer;
+}
+
+.title__start:focus-visible {
+  outline: var(--u) solid var(--color-nes-white);
+  outline-offset: 0;
+  box-shadow: 0 0 0 calc(2 * var(--u)) var(--color-nes-black);
+}
+
+/*
+ * White on the sea alone is 4.1:1, short of AA at this size on a small stage, so the letters get a
+ * hard black outline, one scene pixel all round, and their drop shadow moves one pixel further out.
+ * The arrow gets the same from a chain of hard drop shadows.
+ */
+.title__start-text {
+  --o: var(--u);
+  --n: calc(-1 * var(--u));
+  display: flex;
+  align-items: flex-start;
+  gap: calc(4 * var(--u));
+  text-shadow:
+    var(--o) 0 0 var(--color-nes-black),
+    var(--n) 0 0 var(--color-nes-black),
+    0 var(--o) 0 var(--color-nes-black),
+    0 var(--n) 0 var(--color-nes-black),
+    var(--o) var(--o) 0 var(--color-nes-black),
+    var(--n) var(--o) 0 var(--color-nes-black),
+    var(--o) var(--n) 0 var(--color-nes-black),
+    var(--n) var(--n) 0 var(--color-nes-black),
+    calc(2 * var(--u)) calc(2 * var(--u)) 0 var(--color-nes-black);
+}
+
+.title__start-text .pixel-arrow {
+  filter: drop-shadow(var(--o) 0 0 var(--color-nes-black)) drop-shadow(var(--n) 0 0 var(--color-nes-black))
+    drop-shadow(0 var(--o) 0 var(--color-nes-black)) drop-shadow(0 var(--n) 0 var(--color-nes-black))
+    drop-shadow(var(--o) var(--o) 0 var(--color-nes-black));
+}
+
+/*
+ * PRESS START blinks for as long as the title screen is up, once a second, as the brief asks
+ * (DESIGN.md section 8 records why it does not stop after five seconds). Not under reduced motion.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .title__start-text {
+    animation: blink 1s steps(1, end) infinite;
+  }
+}

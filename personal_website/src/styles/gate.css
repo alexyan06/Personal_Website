@@ -1,0 +1,273 @@
+/*
+ * The gate screen: the title screen's sea and island, and an NES text box that says whose site
+ * this is, asks for a turn (a phone held upright) or a larger window (a small window with a
+ * mouse), and offers the list view and the resume. See src/world/useRotateGate.ts for when.
+ *
+ * Units: --dot is one dot of the body face, a whole number of device pixels (see src/index.css).
+ * Press Start 2P is set in the same unit here (--px is pointed at --dot), and --s, one scene unit
+ * of the title screen as it is drawn here and one pixel of the phone sprite, is 4 dots.
+ * The screen is a query container with a font size of 25 dots, so 1em in an @container rule is
+ * 25 dots. The text box has the dialog's frame and its link is a box like the list view's
+ * (.pixel-frame and .pixel-box in src/index.css). The sea and the island are the world's own
+ * high-definition art, scaled smoothly; everything else is pixel UI in NES palette tokens, with
+ * no gradients, blur or rounded corners.
+ */
+
+.gate {
+  --px: var(--dot);
+  --s: calc(4 * var(--dot));
+
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  container: gate / size;
+  overflow-x: hidden;
+  overflow-y: auto; /* a very short window scrolls rather than hiding the link */
+  overscroll-behavior: contain;
+  background-color: var(--color-nes-black); /* never seen: the sea covers the whole screen */
+  color: var(--color-nes-white);
+  font-family: var(--font-body);
+  font-size: calc(25 * var(--dot));
+  line-height: calc(30 * var(--dot));
+}
+
+.gate:focus {
+  outline: none; /* focused by script when it comes up; the link shows its own ring */
+}
+
+.gate__scene {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(6 * var(--s));
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: calc(5 * var(--s)) calc(4 * var(--s));
+  overflow: hidden;
+}
+
+/* ---- the sea and the island ---------------------------------------------------------------- */
+
+/*
+ * The sea: the world's own ground (.ground in src/index.css) over the whole screen, with its idle
+ * motion. It is as large as the screen (.gate__scene clips its sway). Two dots per scene unit, half
+ * the island's scale: on a phone's dense screen the waves stay small and sharp.
+ */
+.gate__sea {
+  --ground-unit: calc(2 * var(--dot));
+}
+
+/* The island: the overworld's picture as small as on the title screen, 80 x 45 of its units. */
+.gate__isle {
+  position: relative;
+  flex: none;
+  width: calc(80 * var(--s));
+  height: calc(45 * var(--s));
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ---- the text box -------------------------------------------------------------------------- */
+
+.gate__box {
+  /* One step of the frame (.pixel-frame): half an art pixel, as in the dialog on a phone held sideways. */
+  --frame-step: calc(2 * var(--dot));
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: calc(84 * var(--s));
+  padding: calc(6 * var(--s)) calc(5 * var(--s)) calc(5 * var(--s));
+  text-align: center;
+}
+
+.gate__box > :not(.pixel-frame) {
+  position: relative; /* above the frame */
+  flex: none;
+}
+
+/* ---- who ----------------------------------------------------------------------------------- */
+
+/* The name as on the title screen and in the status bar; the role in gold, in the body face (it is
+ * 20 letters, too many for the pixel face at this size on a small phone). */
+.gate__name {
+  font-family: var(--font-pixel);
+  font-size: calc(16 * var(--dot));
+  line-height: calc(24 * var(--dot));
+  text-transform: uppercase;
+}
+
+.gate__role {
+  margin-top: var(--s);
+  color: var(--color-nes-gold);
+  text-wrap: balance;
+}
+
+/* ---- the phone ----------------------------------------------------------------------------- */
+
+/* 32 x 32 sprite pixels, each as large as a pixel of the island. */
+.gate__phone {
+  display: block;
+  width: calc(32 * var(--s));
+  height: calc(32 * var(--s));
+  margin-top: calc(3 * var(--s));
+}
+
+.gate__ink-turn {
+  fill: var(--color-nes-gold);
+}
+
+.gate__ink-body {
+  fill: var(--color-nes-white);
+}
+
+/* The phone's own screen shows the world: its sea and its land (set inline by RotateGate.tsx). */
+.gate__ink-screen {
+  fill: var(--gate-sea);
+}
+
+.gate__ink-isle {
+  fill: var(--gate-land);
+}
+
+.gate__ink-key {
+  fill: var(--color-nes-gray);
+}
+
+/*
+ * The phone turns onto its side in hard steps, twice, and stays there: four seconds in all, because
+ * motion that starts by itself has to stop within five (WCAG 2.2.2). Without the animation the reel
+ * rests on its first frame: the upright phone inside the turn arrows.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .gate__reel {
+    animation: gate-turn 2s step-end 2 forwards;
+  }
+}
+
+/* One frame of the reel is 32 units wide. Upright, 30 degrees, 60 degrees, then on its side. */
+@keyframes gate-turn {
+  0% {
+    transform: translateX(0);
+  }
+
+  40% {
+    transform: translateX(-32px);
+  }
+
+  46% {
+    transform: translateX(-64px);
+  }
+
+  52%,
+  100% {
+    transform: translateX(-96px);
+  }
+}
+
+/* ---- the words ----------------------------------------------------------------------------- */
+
+/* Press Start 2P at two dots per font pixel. */
+.gate__title,
+.gate__link {
+  font-family: var(--font-pixel);
+  font-size: calc(16 * var(--dot));
+  text-transform: uppercase;
+}
+
+.gate__title {
+  margin-top: calc(4 * var(--s));
+  line-height: calc(24 * var(--dot));
+  text-wrap: balance;
+}
+
+.gate__text {
+  margin-top: calc(3 * var(--s));
+  color: var(--color-nes-silver);
+  text-wrap: balance;
+}
+
+/* The one thing to press: a .pixel-box filled in, a white key with black letters, 48 dots tall. */
+.gate__link {
+  --edge: calc(4 * var(--dot));
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: calc(8 * var(--dot));
+  align-self: stretch;
+  margin-top: calc(6 * var(--s));
+  padding: calc(13 * var(--dot)) calc(4 * var(--dot)) calc(11 * var(--dot));
+  line-height: calc(24 * var(--dot));
+  text-align: start; /* if the words have to wrap, they stay beside the arrow */
+  color: var(--color-nes-black);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The menu arrow is as tall as the letters and starts where they do, 4 dots down the line. */
+.gate__link .pixel-arrow {
+  margin-top: calc(4 * var(--dot));
+}
+
+.gate__link::before {
+  background-color: var(--color-nes-white);
+}
+
+.gate__link:active::before {
+  border-color: var(--color-nes-gold);
+  background-color: var(--color-nes-gold);
+}
+
+.gate__link:focus-visible {
+  outline: var(--edge) solid var(--color-nes-gold);
+  outline-offset: var(--edge);
+}
+
+/* The second thing to press, the resume: the same key, not filled in. */
+.gate__link--quiet {
+  margin-top: calc(3 * var(--s));
+  color: var(--color-nes-white);
+}
+
+.gate__link--quiet::before {
+  background-color: var(--color-nes-black);
+}
+
+.gate__link--quiet:active {
+  color: var(--color-nes-black);
+}
+
+/* "Opens in a new tab", level with the capitals. */
+.gate__link .pixel-new-tab {
+  margin: calc(6 * var(--dot)) 0 0;
+}
+
+/* ---- narrow screens, under 340 dots: thinner margins, so the link's words keep their room ---- */
+
+@container gate (width < 13.6em) {
+  .gate__scene {
+    padding-inline: calc(3 * var(--s));
+  }
+
+  .gate__box {
+    padding-inline: calc(3 * var(--s));
+  }
+}
+
+/* ---- short screens, under 600 dots: the box alone on the sea -------------------------------- */
+
+@container gate (height < 24em) {
+  .gate__scene {
+    gap: 0;
+  }
+
+  .gate__isle {
+    display: none;
+  }
+}

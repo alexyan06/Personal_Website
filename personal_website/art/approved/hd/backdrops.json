@@ -1,0 +1,28 @@
+{
+  "note": "Ground that covers the whole view behind a scene. Tile sizes are in scene units (the picture is 320x180 units). Built by art/scripts/hires.mjs.",
+  "picture": [
+    1376,
+    768
+  ],
+  "ocean": {
+    "color": "#0682F8",
+    "tile": [
+      192.09302325581396,
+      127.90697674418605
+    ],
+    "frames": [
+      "ocean-a.webp",
+      "ocean-b.webp"
+    ]
+  },
+  "grass": {
+    "color": "#20AA04",
+    "tile": [
+      192.09302325581396,
+      192.09302325581396
+    ],
+    "frames": [
+      "grass.webp"
+    ]
+  }
+}

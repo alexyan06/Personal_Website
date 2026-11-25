@@ -1,0 +1,151 @@
+/*
+ * The music player: a small black box in the top-left corner, under the status bar.
+ * Type is Press Start 2P at 8 font pixels (--px), like the rest of the chrome, so it stays crisp.
+ * Wide windows show the song's name and where it is from; narrow ones only the name; phones only
+ * the picture and the two buttons.
+ */
+
+.music {
+  --edge: calc(2 * var(--px));
+  --music-ink: var(--color-nes-white);
+  --music-dim: var(--color-nes-silver);
+  --music-hot: var(--color-nes-gold);
+
+  position: absolute;
+  top: calc(var(--hud-h) + 8 * var(--px));
+  left: calc(8 * var(--px));
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: calc(8 * var(--px));
+  max-width: calc(100vw - 16 * var(--px));
+  padding: calc(6 * var(--px)) calc(8 * var(--px));
+  background-color: var(--color-nes-black);
+  color: var(--music-ink);
+  font-family: var(--font-pixel);
+  font-size: calc(8 * var(--px));
+  line-height: calc(12 * var(--px));
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.music__logo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(24 * var(--px));
+  height: calc(24 * var(--px));
+}
+
+.music__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.music__note {
+  width: calc(16 * var(--px));
+  height: calc(16 * var(--px));
+  color: var(--music-hot);
+}
+
+.music__song {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  column-gap: calc(8 * var(--px));
+  min-width: 0;
+  margin: 0;
+}
+
+.music__title {
+  grid-column: 1 / -1;
+  overflow: hidden;
+}
+
+.music__from {
+  overflow: hidden;
+  color: var(--music-dim);
+}
+
+.music__local {
+  color: var(--color-nes-gray);
+}
+
+.music__button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(32 * var(--px));
+  height: calc(24 * var(--px));
+  padding: 0 calc(6 * var(--px));
+  border: calc(2 * var(--px)) solid var(--music-ink);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.music__button:hover,
+.music__button:focus-visible {
+  border-color: var(--music-hot);
+  color: var(--music-hot);
+}
+
+.music__button:focus-visible {
+  outline: calc(2 * var(--px)) solid var(--music-hot);
+  outline-offset: calc(2 * var(--px));
+}
+
+.music__switch[aria-pressed='false'] {
+  border-color: var(--color-nes-gray);
+  color: var(--music-dim);
+}
+
+/* Wide windows: the name at twice the size, like the status bar above it. */
+@media (min-width: 1168px) {
+  .music__logo {
+    width: calc(32 * var(--px));
+    height: calc(32 * var(--px));
+  }
+
+  .music__note {
+    width: calc(24 * var(--px));
+    height: calc(24 * var(--px));
+  }
+
+  .music__title {
+    font-size: calc(16 * var(--px));
+    line-height: calc(20 * var(--px));
+  }
+
+  .music__button {
+    height: calc(32 * var(--px));
+  }
+}
+
+/* Narrow windows: the name only. */
+@media (max-width: 1167px) {
+  .music__from,
+  .music__local {
+    display: none;
+  }
+
+  .music__title {
+    max-width: calc(160 * var(--px));
+  }
+}
+
+/* Phones and short windows: the picture and the buttons. The name is in the button's tooltip. */
+@media (max-width: 899px), (max-height: 480px) {
+  .music {
+    gap: calc(6 * var(--px));
+    padding: calc(4 * var(--px));
+  }
+
+  .music__song {
+    display: none;
+  }
+}

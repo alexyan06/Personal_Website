@@ -2,28 +2,176 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Zoomable: no maximum-scale and no user-scalable. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Alex Yan</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      The words in this file repeat the profile in src/constants/index.tsx (name, role, school, bio,
+      links). When that changes, change this too. The app sets the tab title per route once it runs;
+      on the title screen it uses the og:title below.
+    -->
+    <title>Alex Yan | Software Engineer Intern at Shopify</title>
+    <meta
+      name="description"
+      content="Alex Yan, Software Engineer Intern at Shopify, studying Computer Science at Purdue University. Experience, projects and skills as a pixel-art world or a list."
+    />
+    <meta name="author" content="Alex Yan" />
+
+    <!--
+      The sea around the island: the ocean color of art/approved/hd/backdrops.json. This file cannot
+      read that one, so the two ground colors are repeated here and in the script below; the QA walk
+      fails if they ever differ. The page itself is always dark.
+    -->
+    <meta name="theme-color" content="#0682F8" />
+    <meta name="color-scheme" content="dark" />
+    <!--
+      Icons. The .ico (a 32 px PNG inside) and the touch icon are drawn from src/assets/favicon.svg
+      by scripts/site-images.mjs. The .ico comes first: browsers that take the last icon they
+      understand keep the SVG, and the rest (Safari before 26) get the .ico.
+    -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/src/assets/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!--
+      Both pixel fonts, fetched while the script is still on its way: otherwise they are only
+      asked for once the app has rendered its first text. The build gives these the same hashed
+      names the stylesheet asks for, so each is downloaded once. (crossorigin is required for fonts.)
+    -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/node_modules/@fontsource/press-start-2p/files/press-start-2p-latin-400-normal.woff2"
+    />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/node_modules/@fontsource/vt323/files/vt323-latin-400-normal.woff2" />
+
+    <!--
+      The color behind the first scene, painted before the app's stylesheet and script arrive: sea
+      for the title screen and the overworld, grass for a room (both from backdrops.json, see
+      above), black for the list view. The app keeps the same custom property up to date afterwards
+      (src/components/Stage.tsx).
+    -->
+    <style>
+      html {
+        background-color: var(--page-bg, #000000);
+      }
+    </style>
+    <script>
+      (function () {
+        var place = location.hash.replace(/^#\/?/, '').split('/')[0].toLowerCase();
+        var rooms = ['about', 'experience', 'projects', 'skills', 'learning', 'misc'];
+        var color = place === 'list' ? '#000000' : rooms.indexOf(place) === -1 ? '#0682F8' : '#20AA04';
+        document.documentElement.style.setProperty('--page-bg', color);
+      })();
+    </script>
+
+    <!--
+      Link previews. og.png is a picture of the title screen, 1200 x 630, taken from the built
+      site by scripts/site-images.mjs: run it again when the art or the title screen changes.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Alex Yan" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="https://alexyan.dev/" />
+    <meta property="og:title" content="Alex Yan | Software Engineer Intern at Shopify" />
+    <meta
+      property="og:description"
+      content="Software Engineer Intern at Shopify. Computer Science at Purdue. Experience, projects and skills, as a pixel-art world or a plain list."
+    />
+    <meta property="og:image" content="https://alexyan.dev/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The site's title screen: ALEX YAN in pixel type over a small green island in a blue sea, with PRESS START below." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://alexyan.dev/og.png" />
+    <meta name="twitter:image:alt" content="The site's title screen: ALEX YAN in pixel type over a small green island in a blue sea, with PRESS START below." />
+    <meta name="twitter:title" content="Alex Yan | Software Engineer Intern at Shopify" />
+    <meta
+      name="twitter:description"
+      content="Software Engineer Intern at Shopify. Computer Science at Purdue. Experience, projects and skills, as a pixel-art world or a plain list."
     />
 
-    <script>
-      // Prevent flash by setting theme before render
-      const saved = localStorage.getItem('theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (saved === 'dark' || (!saved && prefersDark)) {
-        document.documentElement.classList.add('dark');
-      }
-    </script>
+    <!-- Without JavaScript there is no world: show a plain summary in the same colors (see <body>). -->
+    <noscript>
+      <style>
+        body {
+          margin: 0;
+          background: #000000;
+          color: #fcfcfc;
+          font: 1.125rem/1.5 ui-monospace, 'Courier New', monospace;
+        }
+        .noscript {
+          box-sizing: border-box;
+          max-width: 42rem;
+          margin: 0 auto;
+          padding: 2rem 1.25rem 4rem;
+        }
+        .noscript h1 {
+          margin: 0;
+          font-size: 2rem;
+          font-weight: 400;
+          line-height: 1.2;
+          text-transform: uppercase;
+        }
+        .noscript p,
+        .noscript ul {
+          margin: 1rem 0 0;
+        }
+        .noscript ul {
+          padding: 0;
+          list-style: none;
+        }
+        .noscript li + li {
+          margin-top: 0.5rem;
+        }
+        .noscript .noscript-role {
+          margin-top: 0.5rem;
+          color: #f8b800;
+        }
+        .noscript .noscript-note {
+          margin-top: 2rem;
+          color: #bcbcbc;
+        }
+        .noscript a {
+          color: #3cbcfc;
+          text-decoration: underline;
+          text-underline-offset: 0.2em;
+        }
+        .noscript a:focus-visible {
+          outline: 2px solid #f8b800;
+          outline-offset: 2px;
+        }
+      </style>
+    </noscript>
+      <!-- The resume opens in a new tab: fetch it while the page is idle so it is already here when asked for. -->
+    <link rel="prefetch" href="/images/Alex_Yan_Resume.pdf" />
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <main class="noscript">
+        <h1>Alex Yan</h1>
+        <p class="noscript-role">Software Engineer Intern at Shopify. Computer Science at Purdue.</p>
+        <p>
+          CS student at Purdue building things at the intersection of software and real-world impact. Into full-stack dev, AI, and
+          systems.
+        </p>
+        <p>Purdue University, B.S. Computer Science. West Lafayette, IN. Graduating May 2028.</p>
+        <ul>
+          <li><a href="/images/Alex_Yan_Resume.pdf">Resume (PDF)</a></li>
+          <li><a href="https://github.com/alexyan06">GitHub</a></li>
+          <li><a href="https://www.linkedin.com/in/alexyan06/">LinkedIn</a></li>
+          <li><a href="mailto:alexyan2309@gmail.com">Email: alexyan2309@gmail.com</a></li>
+        </ul>
+        <p class="noscript-note">
+          The rest of this site is a small pixel-art world, with a plain list view of the same content. Both need JavaScript to
+          run.
+        </p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

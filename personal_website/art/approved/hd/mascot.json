@@ -1,0 +1,34 @@
+{
+  "note": "The character in the cottage. One row of frames. Sizes and positions are in scene units (the room is 320x180). Built by art/scripts/mascot.mjs.",
+  "image": "mascot.webp",
+  "standIn": false,
+  "frame": [
+    176,
+    224
+  ],
+  "count": 4,
+  "size": [
+    40.93023255813954,
+    52.093023255813954
+  ],
+  "anchor": [
+    160,
+    112
+  ],
+  "animations": {
+    "idle": {
+      "frames": [
+        0,
+        1
+      ],
+      "fps": 2
+    },
+    "wave": {
+      "frames": [
+        2,
+        3
+      ],
+      "fps": 4
+    }
+  }
+}

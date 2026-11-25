@@ -1,0 +1,412 @@
+/*
+ * The NES dialog box.
+ *
+ * Units (see src/index.css and Stage.tsx): --u is one scene pixel and --dot one dot of the body face
+ * (VT323: 25 dots per em, a letter is 10 dots wide, a line 30 dots tall). Dialog.tsx sets two sizes of
+ * Press Start 2P font pixel: --ui-px for MORE and BACK, --title-px for the title. All of them are whole
+ * device pixels, and every length below is counted in them, so the box and its type stay on the pixel grid.
+ *
+ * The frame, the tags, the bullets and the marks in the text are the shared pieces in src/index.css
+ * (.pixel-frame, .pixel-tags, .pixel-bullets, .pixel-glyph, .pixel-new-tab). Every color is a token
+ * from the NES palette. There are no gradients, no blur and no rounded corners.
+ */
+
+.dialog {
+  /* The frame (.pixel-frame): a black rim (1 scene pixel) around a white band (2), then the black fill. */
+  --frame-step: var(--u);
+  --frame: calc(3 * var(--frame-step));
+  /* Between the frame and the scrolling part, left and right: where the scrollbar stands clear of the band. */
+  --gutter: calc(2 * var(--u));
+  /* From there to the text. The text ends up 9 scene pixels from the box's outer edge. */
+  --pad: calc(4 * var(--u));
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  /* As wide as the dialog layer; as tall as the content, between a classic text box and the whole layer. */
+  width: 100%;
+  min-height: calc(52 * var(--u));
+  max-height: 100%;
+  padding: calc(var(--frame) + 5 * var(--u)) calc(var(--frame) + var(--gutter))
+    calc(var(--frame) + var(--u));
+  color: var(--color-nes-white);
+  font-family: var(--font-body);
+  font-size: calc(25 * var(--dot));
+  line-height: calc(30 * var(--dot));
+}
+
+.dialog:focus {
+  outline: none; /* focused by script on open; its controls show their own rings */
+}
+
+.dialog ::selection {
+  background-color: var(--color-nes-sky);
+  color: var(--color-nes-black);
+}
+
+/* ---- the part that scrolls ---------------------------------------------------------------- */
+
+.dialog__scroll {
+  position: relative; /* above the frame */
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Keeps the text clear of the scrollbar and of the focus ring. */
+  padding-inline: var(--pad);
+}
+
+/* Focus rings in the dialog are gold, one scene pixel thick like the ring on a hotspot. */
+.dialog__scroll:focus-visible {
+  outline: var(--u) solid var(--color-nes-gold);
+  outline-offset: calc(-1 * var(--u));
+}
+
+/* A pixel scrollbar: a thin gray rail and a chunky white thumb, square like everything else. */
+.dialog__scroll::-webkit-scrollbar {
+  width: calc(3 * var(--u));
+}
+
+.dialog__scroll::-webkit-scrollbar-track {
+  background-color: var(--color-nes-gray);
+  border: solid var(--color-nes-black);
+  border-width: 0 var(--u);
+}
+
+.dialog__scroll::-webkit-scrollbar-thumb {
+  min-height: calc(8 * var(--u));
+  background-color: var(--color-nes-white);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .dialog__scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-nes-white) var(--color-nes-black);
+  }
+}
+
+/* ---- layout: what it is on the left, its text on the right -------------------------------- */
+
+.dialog__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: calc(12 * var(--dot));
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Two columns where the box is at least 72 letters of the body face wide. Dialog.tsx works that
+ * out from the stage's scale and sets the class; where it is missing the two parts stack.
+ */
+.dialog__content--split {
+  grid-template-columns: calc(96 * var(--u)) minmax(0, 1fr);
+  column-gap: calc(8 * var(--u));
+  align-items: start;
+}
+
+/* While the text scrolls, the left column stays (Dialog.tsx sets this only when all of it fits). */
+.dialog[data-pinned] .dialog__content--split > .dialog__head {
+  position: sticky;
+  top: 0;
+}
+
+.dialog__head > * + *,
+.dialog__text > * + * {
+  margin-top: calc(10 * var(--dot));
+}
+
+/* ---- the left column ---------------------------------------------------------------------- */
+
+/* Press Start 2P, 8 font pixels per em. The padding puts its cap line level with the body text's. */
+.dialog__title {
+  padding-top: max(0px, calc(8 * var(--dot) - 2 * var(--title-px)));
+  font-family: var(--font-pixel);
+  font-size: calc(8 * var(--title-px));
+  line-height: calc(12 * var(--title-px));
+  text-transform: uppercase;
+  text-wrap: balance;
+  color: var(--color-nes-white);
+}
+
+.dialog__head > .dialog__subtitle {
+  margin-top: calc(4 * var(--dot));
+  color: var(--color-nes-gold);
+  text-wrap: pretty;
+}
+
+.dialog__head > .dialog__meta {
+  margin-top: 0;
+  color: var(--color-nes-silver);
+}
+
+/* Dates, then place: one fact per line. */
+.dialog__meta > span {
+  display: block;
+}
+
+/*
+ * Stacked, the box is short and every line above the text counts: the facts share a line where
+ * they fit, with a dot between them, as in the list view. A fact that does not fit moves down whole.
+ */
+.dialog__content:not(.dialog__content--split) .dialog__meta {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: calc(30 * var(--dot));
+  overflow-x: clip;
+}
+
+.dialog__content:not(.dialog__content--split) .dialog__meta > span {
+  position: relative;
+}
+
+.dialog__content:not(.dialog__content--split) .dialog__meta > span + span::before {
+  content: '\00B7';
+  content: '\00B7' / ''; /* drawn, not read out */
+  position: absolute;
+  right: 100%;
+  width: calc(30 * var(--dot));
+  text-align: center;
+}
+
+.dialog__title + .dialog__meta {
+  margin-top: calc(4 * var(--dot));
+}
+
+/* ---- the text ----------------------------------------------------------------------------- */
+
+/* No line longer than 75 letters. */
+.dialog__text {
+  min-width: 0;
+  max-width: calc(750 * var(--dot));
+}
+
+.dialog__text p {
+  text-wrap: pretty;
+}
+
+/* A short list of tags under the facts in the left column. */
+.dialog__head > .dialog__tags {
+  margin-top: calc(14 * var(--dot));
+}
+
+/* ---- links -------------------------------------------------------------------------------- */
+
+/*
+ * A menu row. Each link keeps a place for the menu arrow on its left, so the labels are indented
+ * like the items of an NES menu; the arrow shows (and blinks) on the one under the mouse or the
+ * keyboard. The focus ring is drawn inside the link's own box, where nothing can clip it.
+ */
+.dialog__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 calc(4 * var(--dot));
+  list-style: none;
+}
+
+.dialog__links a {
+  --ring: var(--u);
+  display: flex;
+  align-items: baseline;
+  /* 30 dots of text plus the ring and a little air: 42 CSS px tall on a desktop, 27 on a phone. */
+  padding: calc(var(--ring) + 2 * var(--dot)) calc(var(--ring) + 4 * var(--dot));
+  color: var(--color-nes-sky);
+}
+
+.dialog__link-text {
+  text-decoration: underline;
+  text-decoration-thickness: calc(2 * var(--dot));
+  text-underline-offset: calc(4 * var(--dot));
+}
+
+/* The menu arrow in the body face's pixels: 4 x 7 of them, as tall as a capital letter. */
+.dialog__links .pixel-arrow {
+  width: calc(8 * var(--dot));
+  height: calc(14 * var(--dot));
+  margin-right: calc(6 * var(--dot));
+  vertical-align: 0;
+  visibility: hidden;
+  color: var(--color-nes-white);
+}
+
+.dialog__links a:focus-visible {
+  outline: var(--ring) solid var(--color-nes-gold);
+  outline-offset: calc(-1 * var(--ring));
+  color: var(--color-nes-white);
+}
+
+.dialog__links a:focus-visible .pixel-arrow {
+  visibility: visible;
+}
+
+/* ---- the bottom row: MORE on the left, BACK on the right ---------------------------------- */
+
+.dialog__footer {
+  position: relative; /* above the frame */
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto; /* a short dialog is still a full text box: BACK sits at the bottom */
+  padding: calc(2 * var(--u)) var(--pad) 0;
+  font-family: var(--font-pixel);
+  font-size: calc(8 * var(--ui-px));
+  line-height: calc(8 * var(--ui-px));
+  text-transform: uppercase;
+}
+
+/* Shown while there is more text below (Dialog.tsx sets data-scrolls and data-more). */
+.dialog__more {
+  display: none;
+  align-items: center;
+  gap: calc(6 * var(--ui-px));
+  color: var(--color-nes-silver);
+  visibility: hidden;
+}
+
+.dialog[data-scrolls] .dialog__more {
+  display: flex;
+}
+
+.dialog[data-more] .dialog__more {
+  visibility: visible;
+}
+
+.dialog__more-arrow {
+  flex: none;
+  width: 0.875em;
+  height: 0.5em;
+  color: var(--color-nes-gold);
+  fill: currentColor;
+}
+
+.dialog__back {
+  --back-pad: calc(3 * var(--ui-px));
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(6 * var(--ui-px));
+  margin-left: auto;
+  margin-right: calc(-1 * var(--back-pad));
+  padding: var(--back-pad);
+  font: inherit;
+  text-transform: inherit;
+  color: var(--color-nes-white);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* A larger target than the label: 44 CSS px tall on a desktop, 37 on a phone. */
+.dialog__back::after {
+  content: '';
+  position: absolute;
+  inset: calc(-4 * var(--ui-px)) calc(-2 * var(--ui-px));
+}
+
+.dialog__back .pixel-arrow {
+  vertical-align: 0;
+  margin-bottom: 0.125em; /* the letters sit one font pixel above the bottom of their box */
+}
+
+.dialog__back:focus-visible {
+  outline: var(--u) solid var(--color-nes-gold);
+  outline-offset: 0;
+  color: var(--color-nes-gold);
+}
+
+.dialog__back:active {
+  color: var(--color-nes-gold);
+}
+
+@media (hover: hover) {
+  .dialog__links a:hover {
+    color: var(--color-nes-white);
+  }
+
+  .dialog__links a:hover .pixel-arrow {
+    visibility: visible;
+  }
+
+  .dialog__back:hover {
+    color: var(--color-nes-gold);
+  }
+
+  /* One cursor at a time: while it is on a link it is not on BACK. */
+  .dialog:has(.dialog__links a:hover) .dialog__back .pixel-arrow {
+    visibility: hidden;
+  }
+}
+
+.dialog:has(.dialog__links a:focus-visible) .dialog__back .pixel-arrow {
+  visibility: hidden;
+}
+
+/* ---- motion ------------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The cursor blinks on the thing it points at, with hard steps, like the pointer in the world. */
+  .dialog__links a:focus-visible .pixel-arrow,
+  .dialog__back:focus-visible .pixel-arrow {
+    animation: blink 1s steps(1, end) infinite;
+  }
+
+  @media (hover: hover) {
+    .dialog__links a:hover .pixel-arrow,
+    .dialog__back:hover .pixel-arrow {
+      animation: blink 1s steps(1, end) infinite;
+    }
+  }
+
+  /* The arrow of MORE bobs one font pixel, like the "more text" arrow of an RPG. It starts by
+   * itself, so it stops after five seconds. */
+  .dialog[data-more] .dialog__more-arrow {
+    animation: dialog-bob 1s steps(1, end) 5;
+  }
+
+  /*
+   * Opening: the frame unfolds from a strip to the full box in three hard steps (120 ms), and the
+   * text appears with the last one. Dialog.tsx leaves data-enter off on a first page load.
+   */
+  .dialog[data-enter] > .pixel-frame {
+    animation: dialog-unfold 120ms step-end;
+  }
+
+  .dialog[data-enter] > .dialog__scroll,
+  .dialog[data-enter] > .dialog__footer {
+    animation: dialog-fill 120ms step-end;
+  }
+}
+
+@keyframes dialog-bob {
+  50% {
+    transform: translateY(var(--ui-px));
+  }
+}
+
+@keyframes dialog-unfold {
+  0% {
+    inset-block: round(down, 40%, var(--u));
+  }
+
+  34% {
+    inset-block: round(down, 22%, var(--u));
+  }
+
+  67%,
+  100% {
+    inset-block: 0;
+  }
+}
+
+@keyframes dialog-fill {
+  0% {
+    visibility: hidden;
+  }
+
+  67%,
+  100% {
+    visibility: visible;
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "image": "learning.png",
+  "size": [320, 180],
+  "note": "Boxes are [x, y, w, h] in scene pixels. box = click area; plate = blank label plate in the art; inner = inside of the portrait frame; items = individual shelf items, left to right. Display names live in src/world/scenes.ts.",
+  "regions": {
+    "aiengineering": { "box": [44, 90, 36, 36] },
+    "distsys": { "box": [143, 90, 36, 36] },
+    "ddia": { "box": [240, 90, 36, 36] },
+    "door": { "box": [137, 132, 46, 48] }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "image": "projects.png",
+  "size": [320, 180],
+  "note": "Boxes are [x, y, w, h] in scene pixels. box = click area; plate = blank label plate in the art; inner = inside of the portrait frame; items = individual shelf items, left to right. Display names live in src/world/scenes.ts.",
+  "regions": {
+    "raft": { "box": [63, 31, 46, 38] },
+    "perch": { "box": [137, 33, 46, 36], "plate": [147, 72, 27, 7] },
+    "pyrotech": { "box": [212, 29, 46, 40], "plate": [222, 72, 26, 7] },
+    "kvserver": { "box": [63, 73, 46, 37], "plate": [72, 111, 27, 7] },
+    "mapreduce": { "box": [135, 80, 51, 30], "plate": [147, 111, 27, 7] },
+    "iris": { "box": [212, 73, 46, 37], "plate": [222, 111, 26, 7] },
+    "accessprep": { "box": [63, 117, 46, 32], "plate": [72, 151, 27, 7] },
+    "boilerfit": { "box": [137, 120, 46, 14] },
+    "puritytest": { "box": [212, 117, 46, 32], "plate": [221, 151, 27, 7] },
+    "door": { "box": [137, 133, 46, 47] }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "note": "Songs on the live site, in play order. Only add music you have the right to publish. A file in this folder that is not listed here still plays, after the listed ones, named after its file.",
+  "songs": [
+    { "file": "super-mario-world-overworld.mp3", "title": "Overworld Theme", "from": "Super Mario World" },
+    { "file": "kirby-return-to-dream-land-title.mp3", "title": "Title Theme", "from": "Kirby's Return to Dream Land" },
+    { "file": "zelda-main-theme.mp3", "title": "Main Theme", "from": "The Legend of Zelda" },
+    { "file": "star-fox-corneria.mp3", "title": "Corneria", "from": "Star Fox" },
+    { "file": "earthbound-onett.mp3", "title": "Onett", "from": "EarthBound" },
+    { "file": "sonic-green-hill-zone.mp3", "title": "Green Hill Zone", "from": "Sonic the Hedgehog" },
+    { "file": "castlevania-2-bloody-tears.mp3", "title": "Bloody Tears", "from": "Castlevania II: Simon's Quest" },
+    { "file": "kirby-dream-land-theme.mp3", "title": "Theme", "from": "Kirby's Dream Land" },
+    { "file": "donkey-kong-country-theme.mp3", "title": "Theme", "from": "Donkey Kong Country" },
+    { "file": "street-fighter-2-guile.mp3", "title": "Guile's Theme", "from": "Super Street Fighter II" }
+  ]
+}

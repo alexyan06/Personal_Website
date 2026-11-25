@@ -1,0 +1,30 @@
+{
+  "note": "The smoke of the chimneys on the overworld. One row of frames: a puff as it ages, youngest first, each with its middle on the middle of its frame. Sizes and positions are in scene units (the picture is 320x180). Built by art/scripts/hires.mjs (smoke.mjs); how it moves is set in src/world/smoke.ts.",
+  "image": "smoke.webp",
+  "over": "overworld.webp",
+  "frame": [
+    54,
+    42
+  ],
+  "count": 3,
+  "size": [
+    12.558139534883722,
+    9.84375
+  ],
+  "chimneys": [
+    {
+      "id": "about",
+      "mouth": [
+        163.72093023255815,
+        59.296875
+      ]
+    },
+    {
+      "id": "projects",
+      "mouth": [
+        234.30232558139537,
+        13.59375
+      ]
+    }
+  ]
+}

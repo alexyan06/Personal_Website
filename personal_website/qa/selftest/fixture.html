@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA fixture: a minimal app that follows the ENGINE.md contract</title>
+<meta name="theme-color" content="__OCEAN__">
+<!-- The color behind the first scene, before anything else runs (the site's index.html does the same). -->
+<script>
+  (function () {
+    var place = location.hash.replace(/^#\/?/, '').split('/')[0].toLowerCase();
+    var rooms = ['about', 'experience', 'projects', 'skills', 'learning', 'misc'];
+    document.documentElement.style.setProperty('--page-bg', place === 'list' ? '#000000' : rooms.indexOf(place) === -1 ? '__OCEAN__' : '__GRASS__');
+  })();
+</script>
+<!--
+  This is NOT the site. It is a small stand-in that implements the QA contract of ENGINE.md
+  (routes, data attributes, scaling, focus rules) so the harness itself can be tested:
+  a clean fixture must pass every check, and each seeded bug must be caught.
+  qa/selftest/serve.mjs fills in __FIXTURE__ (regions, names, bugs).
+-->
+<style>
+  @font-face { font-family: 'Press Start 2P'; src: url(/fonts/press-start-2p.woff2) format('woff2'); font-display: block; }
+  @font-face { font-family: 'VT323'; src: url(/fonts/vt323.woff2) format('woff2'); font-display: block; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  html { background: var(--page-bg, #000000); }
+  body { color: #FCFCFC; font: 8px/1 'Press Start 2P', monospace; overflow: hidden; }
+  body.list { overflow: auto; height: auto; }
+  a { color: #3CBCFC; }
+  .skip { position: fixed; left: 0; top: -100px; z-index: 60; background: #000000; color: #FCFCFC; padding: 8px; }
+  .skip:focus { top: 0; outline: 2px solid #F8B800; }
+  [data-hud] { position: fixed; left: 0; right: 0; top: 0; height: 32px; z-index: 40; background: #000000; color: #FCFCFC; display: flex; align-items: center; gap: 12px; padding: 0 8px; white-space: nowrap; overflow: hidden; }
+  [data-hud] .grow { flex: 1; }
+  [data-hud] a { color: #FCFCFC; text-decoration: none; }
+  [data-hud] a:focus-visible { outline: 2px solid #F8B800; outline-offset: 2px; }
+  [data-breadcrumb] { display: flex; gap: 6px; color: #BCBCBC; }
+  .links { display: flex; gap: 10px; }
+  .links a .short { display: none; }
+  @media (max-width: 900px) { .role { display: none; } }
+  @media (max-width: 640px) { .links a .long { display: none; } .links a .short { display: inline; } }
+  /* The stage does not clip, the area below the HUD does: a scene's ground covers all of it, and a zoomed scene fills it. */
+  .area { position: fixed; inset: 32px 0 0 0; overflow: hidden; }
+  [data-stage] { position: absolute; }
+  .layer { position: absolute; inset: 0; transform-origin: 0 0; outline: none; }
+  .layer > img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  /* The ground: a tile across its whole box. Two frames (the sea) sway and cross-fade; one (the grass) is still. */
+  [data-ground] { position: absolute; pointer-events: none; }
+  .tiles { position: absolute; inset: 0 -6px; background-repeat: repeat; }
+  .tiles .tiles { inset: 0; opacity: 0; }
+  @keyframes sway { from { transform: translateX(-6px); } to { transform: translateX(6px); } }
+  @keyframes fade { to { opacity: 1; } }
+  @keyframes scroll { to { background-position-x: 200px; } }
+  /* In steps, like the site's: a new picture a few times a second, which costs next to nothing. */
+  .moving > .tiles { animation: sway 2.4s steps(6, end) infinite alternate; }
+  .moving > .tiles > .tiles { animation: fade 2s steps(4, jump-none) infinite alternate; }
+  html.bug-sea-repaint .moving > .tiles { animation: scroll 4s linear infinite; }
+  html.bug-sea-still .moving .tiles { animation: none; }
+  @media (prefers-reduced-motion: reduce) { html:not(.bug-sea-reduced) .moving .tiles { animation: none; } }
+  /* The character: a window one frame large onto a row of frames. */
+  [data-character] { position: absolute; overflow: hidden; pointer-events: none; }
+  [data-character] img { display: block; height: 100%; max-width: none; }
+  .layer.busy { pointer-events: none; }
+  [data-hotspot] { position: absolute; padding: 0; margin: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; display: block; }
+  [data-hotspot]:focus-visible { outline: calc(var(--u) * 1px) solid #FCFCFC; outline-offset: 0; }
+  .label { position: absolute; background: #000000; color: #FCFCFC; font-size: calc(var(--u) * 4px); line-height: 1; white-space: nowrap; pointer-events: none; overflow: visible; }
+  /* Behind a dialog the camera has zoomed: labels are not stretched with it (here they are simply hidden). */
+  html:not(.bug-stretched-labels) [data-stage]:has([data-dialog]) .label { visibility: hidden; }
+  [data-pointer] { position: absolute; color: #F8B800; font-size: calc(var(--u) * 5px); line-height: 1; pointer-events: none; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { visibility: hidden; } }
+  @media (prefers-reduced-motion: reduce) { [data-pointer] { animation: none; } }
+  .flash { position: absolute; inset: 0; pointer-events: none; }
+  .title-text { position: absolute; left: 0; right: 0; text-align: center; }
+  .title-text h1 { margin: 0; font-size: calc(var(--u) * 16px); font-weight: 400; color: #FCFCFC; }
+  [data-press-start] { position: absolute; left: 50%; transform: translateX(-50%); background: #000000; color: #FCFCFC; border: 0; font: inherit; font-size: calc(var(--u) * 6px); padding: calc(var(--u) * 3px); cursor: pointer; }
+  [data-press-start]:focus-visible { outline: calc(var(--u) * 1px) solid #F8B800; }
+  [data-dialog] { position: absolute; left: calc(var(--u) * 20px); top: calc(var(--u) * 24px); width: calc(var(--u) * 280px); max-height: calc(var(--u) * 148px); display: flex; flex-direction: column; background: #000000; color: #FCFCFC; border: calc(var(--u) * 2px) solid #FCFCFC; padding: calc(var(--u) * 6px); }
+  [data-dialog] h2 { margin: 0 0 calc(var(--u) * 4px); font-size: calc(var(--u) * 8px); font-weight: 400; }
+  [data-dialog] .body { overflow-y: auto; font: calc(var(--u) * 10px)/1.1 'VT323', monospace; min-height: 0; }
+  [data-dialog] .body p { margin: 0 0 calc(var(--u) * 4px); }
+  [data-dialog] .back { align-self: flex-start; margin-top: calc(var(--u) * 4px); background: #000000; color: #F8B800; border: 0; font: inherit; font-size: calc(var(--u) * 6px); padding: calc(var(--u) * 2px); cursor: pointer; }
+  [data-dialog] .back:focus-visible { outline: calc(var(--u) * 1px) solid #F8B800; }
+  [data-view="list"] { max-width: 640px; margin: 0 auto; padding: 16px; font: 20px/1.3 'VT323', monospace; color: #FCFCFC; }
+  [data-view="list"] h1, [data-view="list"] h2 { font: 400 14px/1.4 'Press Start 2P', monospace; color: #F8B800; }
+  [data-rotate-gate] { position: fixed; inset: 0; z-index: 50; background: #000000; color: #FCFCFC; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; text-align: center; line-height: 1.6; padding: 16px; }
+  .debug [data-hotspot] { outline: 1px solid #F878F8; }
+  .debug .label { outline: 1px solid #00FCFC; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<a class="skip" href="#/list">View as a list</a>
+<div id="app" data-route="/"></div>
+<script>window.__FIXTURE__ = /*__FIXTURE__*/ null;</script>
+<script>
+(() => {
+  const CFG = window.__FIXTURE__;
+  const BUG = new Set(CFG.bugs);
+  const ROOMS = ['about', 'experience', 'projects', 'skills', 'learning', 'misc'];
+  for (const bug of ['stretched-labels', 'sea-repaint', 'sea-still', 'sea-reduced']) if (BUG.has(bug)) document.documentElement.classList.add(`bug-${bug}`);
+  const ART = CFG.art; // backdrops.json and mascot.json, as the site reads them
+  const CHARACTER = { scene: 'about', hotspot: 'me' };
+  const MOVED = { about: { portrait: 'me' } };
+  const groundOf = (scene) => (scene === 'title' || scene === 'world' ? 'ocean' : 'grass');
+  const groundColor = (scene) => (BUG.has('old-colors') ? (groundOf(scene) === 'ocean' ? '#0078F8' : '#00A800') : ART.backdrops[groundOf(scene)].color);
+  const lastPress = { x: -1000, y: -1000 };
+  addEventListener('pointerdown', (event) => { lastPress.x = event.clientX; lastPress.y = event.clientY; }, true);
+  const NAMES = { world: 'World', about: 'About', experience: 'Experience', projects: 'Projects', skills: 'Skills', learning: 'Learning', misc: 'Misc' };
+  const LINKS = { about: { corkboard: 'https://www.linkedin.com/in/example/', computer: 'https://github.com/example', scroll: '/images/Alex_Yan_Resume.pdf', mailbox: 'mailto:someone@example.com' } };
+  const HUD_H = 32;
+  const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const debug = new URLSearchParams(location.search).get('debug') === 'hotspots';
+  const app = document.getElementById('app');
+  if (BUG.has('console-error')) console.error('fixture: a seeded console error');
+
+  // ---- scenes ---------------------------------------------------------------------------
+  function readingOrder(list) {
+    const rows = [];
+    for (const h of [...list].sort((a, b) => a.box[1] + a.box[3] / 2 - (b.box[1] + b.box[3] / 2))) {
+      const cy = h.box[1] + h.box[3] / 2;
+      const row = rows.find((r) => cy >= r.top && cy <= r.bottom);
+      if (row) row.items.push(h);
+      else rows.push({ top: h.box[1], bottom: h.box[1] + h.box[3], items: [h] });
+    }
+    rows.sort((a, b) => a.top - b.top);
+    return rows.flatMap((r) => r.items.sort((a, b) => a.box[0] - b.box[0]));
+  }
+  function hotspotsFor(scene) {
+    if (scene === 'title') return [];
+    const out = [];
+    const shelves = [];
+    for (const [id, region] of Object.entries(CFG.regions[scene].regions)) {
+      if (id.startsWith('spare')) continue;
+      const kind = scene === 'world' || id === 'door' ? 'scene' : LINKS[scene]?.[id] ? 'link' : 'dialog';
+      const me = scene === CHARACTER.scene && id === CHARACTER.hotspot;
+      const h = { id, box: region.box, kind, name: scene === 'world' ? `${NAMES[id]}: enter` : id === 'door' ? 'Exit to the overworld' : me ? 'About me: Alex Yan' : `Object ${id}`, label: id === 'door' ? 'EXIT' : me ? 'ABOUT ME' : id.toUpperCase(), whole: me };
+      if (scene !== 'world' && Array.isArray(region.items)) {
+        shelves.push({ shelf: h, items: region.items.map((box, i) => ({ id: `${id}-${i}`, box, kind: 'item', parent: id, name: `Item ${i} of ${id}`, label: `${id[0].toUpperCase()}${i}` })) });
+      } else out.push(h);
+    }
+    const door = out.find((h) => h.id === 'door');
+    const ordered = readingOrder(out.filter((h) => h !== door));
+    for (const s of shelves.sort((a, b) => a.shelf.box[0] - b.shelf.box[0])) ordered.push(s.shelf, ...s.items);
+    if (door) ordered.push(door);
+    if (BUG.has('missing-hotspot')) ordered.splice(0, 1);
+    return ordered;
+  }
+  const SCENES = Object.fromEntries(['title', 'world', ...ROOMS].map((id) => [id, hotspotsFor(id)]));
+  const findDialog = (room, item) => SCENES[room].find((h) => h.id === item && h.kind === 'dialog');
+
+  // ---- routes ---------------------------------------------------------------------------
+  function parse(hash) {
+    // A broken percent escape is kept as typed: it matches no route and is replaced like any unknown one.
+    const decode = (p) => { try { return decodeURIComponent(p); } catch { return p; } };
+    const parts = hash.replace(/^#/, '').split('/').filter(Boolean).map((p) => decode(p).toLowerCase());
+    if (!parts.length) return { path: '/', ok: true };
+    const [a, b, ...rest] = parts;
+    if (a === 'world' && b === undefined) return { path: '/world', ok: true };
+    if (a === 'list' && b === undefined) return { path: '/list', ok: true };
+    if (ROOMS.includes(a)) {
+      if (b === undefined) return { path: `/${a}`, ok: true };
+      if (!rest.length && findDialog(a, b)) return { path: `/${a}/${b}`, ok: true };
+      // An item that has moved leads to where it is now.
+      const moved = !rest.length && !BUG.has('moved-lost') ? MOVED[a]?.[b] : undefined;
+      if (moved && findDialog(a, moved)) return { path: `/${a}/${moved}`, ok: false };
+      return { path: `/${a}`, ok: false };
+    }
+    return { path: '/world', ok: false };
+  }
+  const sceneOf = (path) => (path === '/' ? 'title' : path === '/world' ? 'world' : path === '/list' ? null : path.split('/')[1]);
+  const itemOf = (path) => path.split('/')[2] || null;
+  const parentOf = (path) => (itemOf(path) ? `/${sceneOf(path)}` : ROOMS.includes(sceneOf(path)) || path === '/list' ? '/world' : null);
+  const go = (path) => { location.hash = path === '/' ? '#/' : `#${path}`; };
+  function goUp() {
+    const up = parentOf(current);
+    if (!up) return;
+    if (BUG.has('escape-back')) history.back();
+    else go(up);
+  }
+
+  // ---- DOM skeleton ---------------------------------------------------------------------
+  app.innerHTML = `
+    <header data-hud>
+      <span>ALEX YAN</span><span class="role">SWE INTERN @ SHOPIFY</span>
+      <nav data-breadcrumb aria-label="Breadcrumb"></nav>
+      <span class="grow"></span>
+      <span class="links">
+        <a href="/images/Alex_Yan_Resume.pdf"><span class="long">RESUME</span><span class="short">CV</span></a>
+        <a href="https://github.com/example"><span class="long">GITHUB</span><span class="short">GH</span></a>
+        <a href="https://www.linkedin.com/in/example/"><span class="long">LINKEDIN</span><span class="short">IN</span></a>
+        <a href="#/list">LIST</a>
+      </span>
+    </header>
+    <div class="area"><div data-stage data-k="1" data-transition="idle"></div></div>
+    <main data-view-slot></main>`;
+  const hud = app.querySelector('[data-hud]');
+  const crumbs = app.querySelector('[data-breadcrumb]');
+  const stage = app.querySelector('[data-stage]');
+  const area = stage.parentElement;
+  const listSlot = app.querySelector('[data-view-slot]');
+  if (debug) app.classList.add('debug');
+  if (BUG.has('off-palette')) hud.style.color = '#123456';
+  if (BUG.has('hscroll')) {
+    const wide = document.createElement('div');
+    wide.style.cssText = 'position:absolute;left:0;top:0;width:150vw;height:1px';
+    document.body.style.overflow = 'auto';
+    document.body.append(wide);
+  }
+
+  // ---- scaling (ENGINE.md section 5) ----------------------------------------------------
+  let k = 1;
+  function scale() {
+    const dpr = devicePixelRatio;
+    const fit = Math.min(innerWidth / 320, (innerHeight - HUD_H) / 180);
+    k = Math.max(1 / dpr, Math.floor(fit * dpr) / dpr);
+    if (BUG.has('fractional-k')) k = Math.round(fit * 0.97 * 1000) / 1000;
+    const snap = (n) => Math.round(n * dpr) / dpr;
+    stage.style.setProperty('--k', k);
+    stage.style.setProperty('--u', k);
+    stage.dataset.k = String(k);
+    stage.style.width = `${320 * k}px`;
+    stage.style.height = `${180 * k}px`;
+    stage.style.left = `${snap((innerWidth - 320 * k) / 2)}px`;
+    stage.style.top = `${snap((innerHeight - HUD_H - 180 * k) / 2)}px`;
+    for (const layer of stage.querySelectorAll('.layer')) place(layer);
+    gate();
+  }
+
+  // ---- building a scene -----------------------------------------------------------------
+  const px = (n) => `${n * k}px`;
+  function place(layer) {
+    const scene = layer.dataset.scene;
+    for (const el of layer.querySelectorAll('[data-hotspot]')) {
+      const h = SCENES[scene].find((x) => x.id === el.dataset.hotspot);
+      let [x, y, w, hh] = h.box;
+      if (BUG.has('offset') && h === SCENES[scene][0]) x += 3;
+      const cw = BUG.has('small-target') ? w * k : Math.max(w * k, 24);
+      const ch = BUG.has('small-target') ? hh * k : Math.max(hh * k, 24);
+      el.style.left = `${x * k - (cw - w * k) / 2}px`;
+      el.style.top = `${y * k - (ch - hh * k) / 2}px`;
+      el.style.width = `${cw}px`;
+      el.style.height = `${ch}px`;
+    }
+    // The ground: the whole view below the HUD and a margin beyond it, so it still covers the view
+    // when the camera has eased toward an object. Tiles are counted from the scene's corner.
+    const ground = layer.querySelector('[data-ground]');
+    if (ground) {
+      const left = parseFloat(stage.style.left);
+      const top = parseFloat(stage.style.top);
+      const spare = 40 * k;
+      let box = { x: -left - spare, y: -top - spare, w: innerWidth + 2 * spare, h: innerHeight - HUD_H + 2 * spare };
+      if (BUG.has('flat-band')) box = { x: 0, y: 0, w: 320 * k, h: 180 * k }; // only as large as the old picture
+      if (BUG.has('huge-ground')) box = { x: -4000, y: -3000, w: 9000, h: 7000 };
+      ground.style.left = `${box.x}px`;
+      ground.style.top = `${box.y}px`;
+      ground.style.width = `${box.w}px`;
+      ground.style.height = `${box.h}px`;
+      const tile = ART.backdrops[ground.dataset.ground].tile;
+      for (const tiles of ground.querySelectorAll('.tiles')) {
+        tiles.style.backgroundSize = `${tile[0] * k}px ${tile[1] * k}px`;
+        tiles.style.backgroundPosition = `${-box.x + 6}px ${-box.y}px`;
+      }
+      // Seeded bug: the ground's box covers the view, but its tiles stop at the old picture's edge.
+      if (BUG.has('flat-color')) Object.assign(ground.firstElementChild.style, { inset: 'auto', left: `${-box.x}px`, top: `${-box.y}px`, width: `${320 * k}px`, height: `${180 * k}px` });
+    }
+    const picture = layer.querySelector(':scope > img');
+    if (picture && scene === 'title') {
+      // The overworld's own picture, small, where title.json puts it.
+      const [x, y, w, hh] = CFG.title.overworldRect;
+      Object.assign(picture.style, { inset: 'auto', left: px(BUG.has('island-off') ? x + 6 : x), top: px(y), width: px(w), height: px(hh) });
+    }
+    const who = layer.querySelector('[data-character]');
+    if (who) {
+      const [w, hh] = ART.mascot.size;
+      const [ax, ay] = ART.mascot.anchor;
+      Object.assign(who.style, { left: px(ax - w / 2), top: px(ay - hh), width: px(w), height: px(hh) });
+    }
+    for (const el of layer.querySelectorAll('.label')) {
+      const list = SCENES[scene];
+      const h = list.find((x) => x.id === el.dataset.labelFor);
+      const [x, y, w, hh] = h.box;
+      const width = el.textContent.length * 4;
+      let left = Math.min(320 - width, Math.max(0, Math.round(x + w / 2 - width / 2)));
+      let top = y + hh + 1;
+      if (top + 4 > 180) top = y + hh - 5;
+      if (BUG.has('label-overlap') && h === list[1]) {
+        const first = list[0].box;
+        left = Math.min(320 - width, Math.max(0, Math.round(first[0] + first[2] / 2 - width / 2)));
+        top = first[1] + first[3] + 1;
+      }
+      if (BUG.has('label-outside') && h === list[2]) left = 320 - 4;
+      el.style.left = px(left);
+      el.style.top = px(top);
+      el.style.width = px(width);
+      el.style.height = px(4);
+    }
+    const title = layer.querySelector('.title-text');
+    if (title) {
+      title.style.top = px(CFG.title.textAreas.title[1] + 8);
+      layer.querySelector('[data-press-start]').style.top = px(CFG.title.textAreas.pressStart[1] + 4);
+    }
+    const pointer = layer.querySelector('[data-pointer]');
+    if (pointer) movePointer(layer, pointer.dataset.at);
+  }
+  function movePointer(layer, id) {
+    let pointer = layer.querySelector('[data-pointer]');
+    const h = id ? SCENES[layer.dataset.scene].find((x) => x.id === id) : null;
+    if (!h) { pointer?.remove(); return; }
+    if (!pointer) {
+      pointer = document.createElement('span');
+      pointer.setAttribute('data-pointer', '');
+      pointer.setAttribute('aria-hidden', 'true');
+      pointer.textContent = '▶';
+      layer.append(pointer);
+    }
+    pointer.dataset.at = id;
+    pointer.style.left = px(h.box[0] + 1);
+    pointer.style.top = px(h.box[1] + 1);
+  }
+  // ---- the character ---------------------------------------------------------------------
+  // Frames, order and rate come from mascot.json; nothing about the sheet is written down here.
+  function play(who) {
+    const sheet = who.querySelector('img');
+    const m = ART.mascot;
+    const shift = (frame) => `translateX(${(-100 * frame) / m.count}%)`;
+    for (const a of sheet.getAnimations()) a.cancel();
+    sheet.style.transform = shift(m.animations.idle.frames[0]);
+    if (reduced() || BUG.has('character-still')) return;
+    const animation = m.animations[who.dataset.pose];
+    let frames = animation.frames;
+    if (BUG.has('character-frames')) frames = Array.from({ length: m.count }, (_, i) => i); // every frame in the sheet, whatever the pose
+    const keyframes = frames.map((frame, i) => ({ transform: shift(frame), offset: i / frames.length, easing: 'steps(1, end)' }));
+    keyframes.push({ transform: shift(frames[0]), offset: 1 });
+    sheet.animate(keyframes, { duration: (1000 * frames.length) / animation.fps, iterations: Infinity });
+  }
+  function pose(sceneLayer) {
+    const who = sceneLayer?.querySelector('[data-character]');
+    if (!who) return;
+    const el = sceneLayer.querySelector(`[data-hotspot="${who.dataset.character}"]`);
+    const wave = !BUG.has('character-no-wave') && !!el && (el.matches(':hover') || el.matches(':focus-visible') || dialogEl?.dataset.dialog === who.dataset.character);
+    const next = wave ? 'wave' : 'idle';
+    if (who.dataset.pose === next && who.dataset.playing) return;
+    who.dataset.pose = next;
+    who.dataset.playing = '1';
+    play(who);
+  }
+
+  function build(scene) {
+    const layer = document.createElement('div');
+    layer.className = 'layer';
+    layer.dataset.scene = scene;
+    layer.tabIndex = -1;
+    layer.setAttribute('aria-label', scene === 'title' ? 'Title screen' : NAMES[scene]);
+    // The ground first: the sea or the grass, behind the picture.
+    const kind = groundOf(scene);
+    const frames = ART.backdrops[kind].frames;
+    const ground = document.createElement('div');
+    ground.dataset.ground = kind;
+    ground.style.backgroundColor = groundColor(scene);
+    if (frames.length > 1) ground.className = 'moving';
+    const tiles = document.createElement('div');
+    tiles.className = 'tiles';
+    tiles.style.backgroundImage = `url(/art/hd/${frames[0]})`;
+    if (frames.length > 1) {
+      const second = document.createElement('div');
+      second.className = 'tiles';
+      second.style.backgroundImage = `url(/art/hd/${frames[1]})`;
+      tiles.append(second);
+    }
+    ground.append(tiles);
+    if (!BUG.has('no-ground')) layer.append(ground);
+    const img = document.createElement('img');
+    img.alt = '';
+    // The high-definition picture, scaled smoothly. The title screen shows the overworld's, small.
+    img.src = BUG.has('low-res') ? `/art/${scene === 'title' ? 'title' : scene === 'world' ? 'overworld' : scene}.png` : `/art/hd/${scene === 'world' || scene === 'title' ? 'overworld' : scene}.webp`;
+    if (BUG.has('pixelated')) img.style.imageRendering = 'pixelated';
+    layer.append(img);
+    if (scene === CHARACTER.scene && !BUG.has('no-character')) {
+      const who = document.createElement('div');
+      who.dataset.character = CHARACTER.hotspot;
+      who.dataset.pose = 'idle';
+      who.setAttribute('aria-hidden', 'true');
+      const sheet = document.createElement('img');
+      sheet.alt = '';
+      sheet.src = `/art/hd/${ART.mascot.image}`;
+      sheet.style.width = `${ART.mascot.count * 100}%`;
+      who.append(sheet);
+      layer.append(who);
+    }
+    if (scene === 'title') {
+      layer.insertAdjacentHTML('beforeend', '<div class="title-text"><h1>ALEX YAN</h1></div><button data-press-start>▶ PRESS START</button>');
+      layer.addEventListener('click', () => { if (current === '/') go('/world'); });
+      return layer;
+    }
+    SCENES[scene].forEach((h, index) => {
+      const tag = BUG.has('div-hotspot') && index === 3 ? 'div' : h.kind === 'link' ? 'a' : 'button';
+      const el = document.createElement(tag);
+      el.dataset.hotspot = h.id;
+      if (!(BUG.has('no-name') && index === 4)) el.setAttribute('aria-label', h.name);
+      if (h.kind === 'link') { el.href = LINKS[scene][h.id]; if (/^https?:/.test(el.getAttribute('href'))) { el.target = '_blank'; el.rel = 'noopener'; } }
+      else {
+        el.addEventListener('click', () => {
+          if (busy) return;
+          opener = h.id;
+          if (h.kind === 'scene') go(scene === 'world' ? `/${h.id}` : '/world');
+          else go(`/${scene}/${h.kind === 'item' ? h.parent : h.id}`);
+        });
+      }
+      const show = () => { movePointer(layer, h.id); if (h.kind === 'item') label.hidden = false; pose(layer); };
+      const hide = () => {
+        const active = layer.querySelector('[data-hotspot]:focus-visible, [data-hotspot]:focus');
+        const hovered = layer.querySelector('[data-hotspot]:hover');
+        const keep = (BUG.has('no-outline') ? null : active) || hovered;
+        movePointer(layer, keep ? keep.dataset.hotspot : null);
+        if (h.kind === 'item' && keep !== el) label.hidden = true;
+        pose(layer);
+      };
+      el.addEventListener('mouseenter', show);
+      el.addEventListener('mouseleave', hide);
+      el.addEventListener('focus', () => { if (!BUG.has('no-outline')) show(); });
+      el.addEventListener('blur', () => setTimeout(hide));
+      if (BUG.has('no-outline')) el.style.outline = 'none';
+      layer.append(el);
+      const label = document.createElement('span');
+      label.className = 'label';
+      label.dataset.labelFor = h.id;
+      label.textContent = h.whole ? h.label : h.label.slice(0, Math.max(2, Math.floor(h.box[2] / 4)));
+      if (h.kind === 'item') label.hidden = true;
+      layer.append(label);
+    });
+    return layer;
+  }
+
+  // ---- camera ---------------------------------------------------------------------------
+  const zoomTo = ([x, y, w, h], max = 6) => {
+    const s = Math.min(max, 320 / w, 180 / h);
+    return `translate(${(160 - (x + w / 2) * s) * k}px, ${(90 - (y + h / 2) * s) * k}px) scale(${s})`;
+  };
+  const titleZoom = () => { const [x, y] = CFG.title.overworldRect; const z = BUG.has('zoom-short') ? 3.5 : 4; return `translate(${-x * z * k}px, ${-y * z * k}px) scale(${z})`; };
+  const itemZoom = (box) => { const s = 1.25; return `translate(${(160 - (box[0] + box[2] / 2)) * (s - 1) * k}px, ${(90 - (box[1] + box[3] / 2)) * (s - 1) * k}px) scale(${s})`; };
+  const tween = (el, frames, ms, easing = 'ease-in-out') => el.animate(frames, { duration: ms, easing, fill: 'forwards' }).finished.then((a) => { a.commitStyles(); a.cancel(); });
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // ---- state ----------------------------------------------------------------------------
+  let current = null; // canonical path being shown
+  let layer = null; // the visible scene layer
+  let busy = false;
+  let pending = false;
+  let opener = null;
+  let dialogEl = null;
+
+  function setRunning(on) {
+    busy = on;
+    if (BUG.has('no-running')) return;
+    if (!on && BUG.has('never-idle') && current !== null && stage.dataset.transition === 'running') return;
+    stage.dataset.transition = on ? 'running' : 'idle';
+  }
+  function showScene(scene) {
+    layer?.remove();
+    layer = build(scene);
+    stage.append(layer);
+    place(layer);
+    pose(layer);
+    return layer;
+  }
+  function chrome(path) {
+    const scene = sceneOf(path);
+    if (!(BUG.has('wrong-route-attr') && path !== '/')) app.dataset.route = path;
+    document.body.className = path === '/list' ? 'list' : '';
+    document.documentElement.style.setProperty('--page-bg', path === '/list' ? '#000000' : groundColor(scene));
+    area.hidden = path === '/list';
+    hud.hidden = path === '/list';
+    const parts = [];
+    if (scene === 'world') parts.push('<span aria-current="page">World</span>');
+    if (ROOMS.includes(scene)) {
+      parts.push('<a href="#/world">World</a>', '<span aria-hidden="true">›</span>');
+      const item = itemOf(path);
+      if (item) parts.push(`<a href="#/${scene}">${NAMES[scene]}</a>`, '<span aria-hidden="true">›</span>', `<span aria-current="page">${item}</span>`);
+      else parts.push(`<span aria-current="page">${NAMES[scene]}</span>`);
+    }
+    crumbs.innerHTML = parts.join('');
+    gate();
+  }
+  function openDialog(room, id) {
+    closeDialog();
+    const long = id === 'pnc' || id === 'languages';
+    const paragraphs = Array.from({ length: long ? 14 : 2 }, (_, i) => `<p>Line ${i + 1} about ${id}: placeholder text for the harness self-test, long enough to wrap.</p>`).join('');
+    const el = document.createElement('div');
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-labelledby', 'dialog-title');
+    el.dataset.dialog = id;
+    const heading = room === CHARACTER.scene && id === CHARACTER.hotspot ? 'ALEX YAN' : id.toUpperCase();
+    el.innerHTML = `<h2 id="dialog-title">${heading}</h2><div class="body" tabindex="${long ? 0 : -1}">${paragraphs}</div><button class="back">▶ BACK</button>`;
+    if (BUG.has('clip-dialog')) { const body = el.querySelector('.body'); body.style.overflow = 'hidden'; body.style.maxHeight = `${20 * k}px`; }
+    // The second click of a double click on the object lands on whatever the dialog puts under the
+    // mouse. It is not counted: a click soon after opening, on the spot of the press that opened it.
+    const openedAt = performance.now();
+    const openedBy = { ...lastPress };
+    el.querySelector('.back').addEventListener('click', (event) => {
+      const second = event.detail > 0 && performance.now() - openedAt < 500 && Math.hypot(event.clientX - openedBy.x, event.clientY - openedBy.y) <= 24;
+      if (!second) goUp();
+    });
+    el.addEventListener('keydown', (event) => {
+      if (event.key !== 'Tab' || BUG.has('no-trap')) return;
+      const stops = [...el.querySelectorAll('button, a[href], [tabindex="0"]')];
+      const at = stops.indexOf(document.activeElement);
+      event.preventDefault();
+      stops[(at + (event.shiftKey ? -1 : 1) + stops.length) % stops.length].focus();
+    });
+    stage.append(el);
+    dialogEl = el;
+    el.querySelector('.back').focus();
+    pose(layer);
+  }
+  function closeDialog() { dialogEl?.remove(); dialogEl = null; pose(layer); }
+  function renderList() {
+    const li = (names) => names.map((n) => `<li>${n.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</li>`).join('');
+    const projects = BUG.has('missing-name') ? CFG.names.projects.slice(1) : CFG.names.projects;
+    listSlot.innerHTML = `<div data-view="list"><h1>Alex Yan</h1><p><a href="#/world">Back to the world</a></p>
+      <h2>About</h2><p>Placeholder bio.</p><h2>Experience</h2><ul>${li(CFG.names.experience)}</ul>
+      <h2>Projects</h2><ul>${li(projects)}</ul><h2>Skills</h2><p>Placeholder.</p><h2>Learning</h2><p>Placeholder.</p><h2>Misc</h2><p>Placeholder.</p></div>`;
+  }
+  function gate() {
+    const want = matchMedia('(pointer: coarse)').matches && innerWidth < 600 && innerHeight > innerWidth && (current !== '/list' || BUG.has('gate-everywhere'));
+    let el = document.querySelector('[data-rotate-gate]');
+    if (want && !el) {
+      el = document.createElement('div');
+      el.setAttribute('data-rotate-gate', '');
+      el.innerHTML = '<p>ROTATE YOUR DEVICE</p><a href="#/list">View as a list</a>';
+      app.append(el);
+    } else if (!want && el) el.remove();
+  }
+
+  // ---- navigation -----------------------------------------------------------------------
+  async function show(path, first) {
+    const from = current;
+    const fromScene = from === null ? null : sceneOf(from);
+    const scene = sceneOf(path);
+    const item = itemOf(path);
+    const animate = !first;
+    const still = reduced() && !BUG.has('reduced-zoom');
+
+    if (path === '/list') { current = path; closeDialog(); layer?.remove(); layer = null; renderList(); chrome(path); return; }
+    listSlot.innerHTML = '';
+    if (from === '/list' || !animate) {
+      // First load, or back from the list: straight there, no animation.
+      current = path;
+      closeDialog();
+      chrome(path);
+      showScene(scene);
+      if (item) { const box = SCENES[scene].find((h) => h.id === item).box; if (!still) layer.style.transform = itemZoom(box); openDialog(scene, item); }
+      else if (!first) layer.focus();
+      await layer.querySelector('img').decode().catch(() => {});
+      return;
+    }
+
+    setRunning(true);
+    layer?.classList.add('busy');
+    const hadItem = itemOf(from);
+    if (fromScene === scene) {
+      // Room <-> item: ease toward the object, or back.
+      if (hadItem) closeDialog();
+      if (still) { await tween(layer, [{ opacity: 1 }, { opacity: 0.6 }, { opacity: 1 }], 120); }
+      else if (item) await tween(layer, [{ transform: 'none' }, { transform: itemZoom(SCENES[scene].find((h) => h.id === item).box) }], 300);
+      else { await tween(layer, [{ transform: getComputedStyle(layer).transform }, { transform: 'none' }], 300); layer.style.transform = ''; }
+      current = path;
+      chrome(path);
+      if (item) openDialog(scene, item);
+      else if (hadItem && opener && !BUG.has('no-focus-return')) layer.querySelector(`[data-hotspot="${opener}"]`)?.focus();
+    } else {
+      closeDialog();
+      // Reduced motion: the new scene simply fades in over the old one's place, well inside 200 ms.
+      if (still) await tween(layer, [{ opacity: 1 }, { opacity: 0.4 }], 30);
+      else if (fromScene === 'title' && scene === 'world') {
+        // The zoomed title screen rests for a moment before the overworld takes over (the site cross-fades here).
+        await tween(layer, [{ transform: 'none' }, { transform: titleZoom() }], 800);
+        await wait(100);
+      }
+      else if (fromScene === 'world' && ROOMS.includes(scene)) {
+        const box = CFG.regions.world.regions[scene].box;
+        await tween(layer, [{ transform: 'none' }, { transform: zoomTo(box) }], 500, 'ease-in');
+        const flash = document.createElement('div');
+        flash.className = 'flash';
+        flash.style.background = '#7C7C7C';
+        stage.append(flash);
+        await wait(150);
+        flash.remove();
+      }
+      current = path;
+      chrome(path);
+      const next = showScene(scene);
+      next.classList.add('busy');
+      await next.querySelector('img').decode().catch(() => {});
+      if (still) await tween(next, [{ opacity: 0.4 }, { opacity: 1 }], 50);
+      else if (fromScene === 'world' && scene === 'title') { await tween(next, [{ transform: titleZoom() }, { transform: 'none' }], 600); next.style.transform = ''; }
+      else if (ROOMS.includes(fromScene) && scene === 'world') { await tween(next, [{ transform: zoomTo(CFG.regions.world.regions[fromScene].box) }, { transform: 'none' }], 400, 'ease-out'); next.style.transform = ''; }
+      next.style.opacity = '';
+      if (item) { if (!still) next.style.transform = itemZoom(SCENES[scene].find((h) => h.id === item).box); openDialog(scene, item); }
+      else next.focus();
+    }
+    layer?.classList.remove('busy');
+    setRunning(false);
+  }
+
+  async function onRoute(first) {
+    const parsed = parse(location.hash);
+    if (!parsed.ok) {
+      const fixed = `${location.pathname}${location.search}#${parsed.path}`;
+      if (BUG.has('push-unknown')) { location.hash = `#${parsed.path}`; return; }
+      history.replaceState(null, '', fixed);
+    }
+    if (busy) { pending = true; return; }
+    if (first && BUG.has('title-on-deeplink') && parsed.path !== '/' && parsed.path !== '/list') {
+      current = '/';
+      showScene('title');
+      await wait(250);
+      current = null;
+    }
+    if (parsed.path !== current) await show(parsed.path, first || current === null);
+    if (pending) { pending = false; onRoute(false); }
+  }
+
+  addEventListener('hashchange', () => onRoute(false));
+  addEventListener('resize', scale);
+  addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') { goUp(); return; }
+    if (current === '/' && !busy && (event.key === 'Enter' || event.key === ' ')) {
+      const target = event.target;
+      if (target.closest && target.closest('a') && !target.closest('[data-press-start]')) return;
+      event.preventDefault();
+      go('/world');
+    }
+  });
+  document.fonts.load('8px "Press Start 2P"');
+  document.fonts.load('8px "VT323"');
+  // The pictures are large: fetch and decode them all ahead of time, as the site does, so a scene
+  // change never waits for one (under reduced motion a change is a short cross-fade and nothing more).
+  const warm = (BUG.has('low-res') ? [] : ['overworld', ...ROOMS]).map((name) => {
+    const img = new Image();
+    img.src = `/art/hd/${name}.webp`;
+    img.decode().catch(() => {});
+    return img;
+  });
+  window.__warm = warm; // kept, so the browser keeps them
+  scale();
+  onRoute(true);
+})();
+</script>
+</body>
+</html>

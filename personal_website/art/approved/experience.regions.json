@@ -1,0 +1,12 @@
+{
+  "image": "experience.png",
+  "size": [320, 180],
+  "note": "Boxes are [x, y, w, h] in scene pixels. box = click area; plate = blank label plate in the art; inner = inside of the portrait frame; items = individual shelf items, left to right. Display names live in src/world/scenes.ts.",
+  "regions": {
+    "shopify": { "box": [15, 24, 63, 64], "plate": [32, 93, 31, 7] },
+    "pnc": { "box": [84, 2, 72, 88], "plate": [105, 93, 30, 7] },
+    "purduestack": { "box": [161, 0, 76, 90], "plate": [185, 93, 30, 7] },
+    "rooh": { "box": [241, 10, 65, 80], "plate": [258, 93, 30, 7] },
+    "door": { "box": [137, 132, 46, 48] }
+  }
+}
