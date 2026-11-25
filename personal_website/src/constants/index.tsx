@@ -16,7 +16,7 @@ const profile: ProfileType = {
   name: 'Alex Yan',
   role: 'SWE Intern @ Shopify',
   headline: 'Software Engineer Intern at Shopify. Computer Science at Purdue.',
-  bio: 'CS student at Purdue. Interested in distributed systems, AI, and infra.',
+  bio: "Hey, I'm Alex! I'm a CS junior at Purdue and a software engineer intern at Shopify in New York. I'm into distributed systems, backend, and AI development, and I like building things that are a bit playful. Thanks for stopping by my island. Say hi anytime :D",
   links: {
     github: 'https://github.com/alexyan06',
     linkedin: 'https://www.linkedin.com/in/alexyan06/',
