@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type CSSProperties } from 'react';
 import { PixelArrow } from '@/components/PixelArrow';
 import { holdMusic, logoUrl, nextSong, songs, startMusic, toggleMusic, useMusic } from '@/world/music';
 import '@/styles/music.css';
@@ -7,6 +7,9 @@ type MusicPlayerProps = {
   /** Shown once the visitor is past the title screen. */
   visible: boolean;
 };
+
+/** Characters of the song's name that fit in the phone layout's window (9em in music.css). */
+const TITLE_WINDOW = 9;
 
 const isNewTabLink = (target: EventTarget | null) => target instanceof Element && target.closest('a[target="_blank"]') !== null;
 
@@ -59,8 +62,14 @@ export function MusicPlayer({ visible }: MusicPlayerProps) {
         {logoUrl ? <img src={logoUrl} alt="" draggable={false} /> : <NoteIcon />}
       </span>
       <p className="music__song">
-        <span className="music__title" data-music-title="">
-          {song.title}
+        {/* On a phone the name shows through a short window and steps along if it is longer (music.css). */}
+        <span
+          className="music__title"
+          data-music-title=""
+          data-long={song.title.length > TITLE_WINDOW ? '' : undefined}
+          style={{ '--over': Math.max(0, song.title.length - TITLE_WINDOW) } as CSSProperties}
+        >
+          <span className="music__title-text">{song.title}</span>
         </span>
         {song.from && <span className="music__from">{song.from}</span>}
         {song.local && (

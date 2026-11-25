@@ -138,14 +138,87 @@
   }
 }
 
-/* Phones and short windows: the picture and the buttons. The name is in the button's tooltip. */
+/*
+ * Phones on their side and short windows: two rows that fit the band beside the picture. The
+ * picture and the two buttons on top, the song's name underneath. A name longer than the window
+ * steps along one letter at a time and back, so it can all be read. The type is one size up from
+ * 8px where the screen is dense enough to keep it crisp.
+ */
 @media (max-width: 899px), (max-height: 480px) {
   .music {
-    gap: calc(6 * var(--px));
-    padding: calc(4 * var(--px));
+    display: grid;
+    grid-template-columns: auto auto auto;
+    justify-content: start;
+    align-items: center;
+    gap: calc(4 * var(--px)) calc(6 * var(--px));
+    padding: calc(4 * var(--px)) calc(6 * var(--px)) calc(5 * var(--px));
+  }
+
+  .music__logo {
+    grid-row: 1;
+  }
+
+  .music__button {
+    grid-row: 1;
   }
 
   .music__song {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    display: block;
+  }
+
+  .music__from,
+  .music__local {
     display: none;
+  }
+
+  .music__title {
+    display: block;
+    width: 9em;
+    max-width: none;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .music__title-text {
+    display: inline-block;
+  }
+
+  .music__title[data-long] .music__title-text {
+    animation: music-title calc(var(--over) * 0.45s + 4s) steps(var(--over)) infinite alternate;
+  }
+
+  /* 3 device pixels per font pixel on a 2x screen, 4 on a 3x screen. */
+  @media (min-resolution: 1.5dppx) {
+    .music {
+      font-size: 12px;
+      line-height: 16px;
+    }
+  }
+
+  @media (min-resolution: 2.75dppx) {
+    .music {
+      font-size: calc(32px / 3);
+    }
+  }
+}
+
+/* Holds at each end, and between them moves by the letters that do not fit. */
+@keyframes music-title {
+  0%,
+  25% {
+    transform: translateX(0);
+  }
+
+  75%,
+  100% {
+    transform: translateX(calc(var(--over) * -1em));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music__title-text {
+    animation: none !important;
   }
 }
